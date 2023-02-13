@@ -13,6 +13,12 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 public class Engine {
+    int speed = 0;
+
+    public void setEngineSpeed(int engineSpeed) {
+        this.speed = engineSpeed;
+    }
+
     public static void main(String[] args) {
         ScheduledExecutorService engine = Executors.newScheduledThreadPool(1);
         engine.scheduleAtFixedRate(new EngineLogic(), 0, 3, TimeUnit.SECONDS);
@@ -21,7 +27,7 @@ public class Engine {
 
 class EngineLogic implements Runnable {
     ConnectionFactory factory = new ConnectionFactory();
-    private static final String EXCHANGE_NAME = "flight";
+    private static final String EXCHANGE_NAME = "controllerActuatorExchange";
 
     @Override
     public void run() {
