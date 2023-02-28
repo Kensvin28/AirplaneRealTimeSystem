@@ -1,58 +1,61 @@
 package Producer;
 
+import Controller.Exchange;
+import Controller.Key;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
 
 import java.io.IOException;
 import java.util.Random;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
+import java.util.concurrent.*;
 
 public class Speedometer {
-    public static void main(String[] args) {
-        ScheduledExecutorService speedometer = Executors.newScheduledThreadPool(1);
-        speedometer.scheduleAtFixedRate(new SpeedometerLogic(), 0, 3, TimeUnit.SECONDS);
-    }
-}
-
-class SpeedometerLogic implements Runnable {
     Random rand = new Random();
-    String EXCHANGE_NAME = "sensorControllerExchange";
-    ConnectionFactory cf = new ConnectionFactory();
+    int speed;
+    final int MAX_SPEED = 600;
 
-    public SpeedometerLogic() {
-    }
-
-    @Override
-    public void run() {
-        String currentSpeed = getSpeed();
-        transmit(currentSpeed);
-    }
-
-    public String getSpeed() {
-        String speed = "";
-        int currentSpeed = rand.nextInt(100, 600);
-        System.out.println("Speed: " + currentSpeed);
-        if (currentSpeed > 550) speed = "tooFast";
-        else if (currentSpeed > 525) speed = "slightlyFast";
-        else if (currentSpeed > 500) speed = "ok";
-        else if (currentSpeed > 400) speed = "slightlySlow";
-        else if (currentSpeed >= 100) speed = "tooSlow";
+    public int getSpeed() {
         return speed;
     }
 
-    public void transmit(String speed) {
-        try (Connection connection = cf.newConnection();
-             Channel channel = connection.createChannel()) {
-            channel.exchangeDeclare(EXCHANGE_NAME, "fanout");
-            channel.basicPublish(EXCHANGE_NAME, "", false, null, speed.getBytes());
-            System.out.println("Speed: " + speed);
-            Thread.sleep(100);
-        } catch (IOException | TimeoutException | InterruptedException e) {
-            throw new RuntimeException(e);
+    public void setSpeed(int speedChange) {
+        if(speedChange != 0) {
+            // speed limit
+            if (speed - speedChange < 0) {
+                speed = 0;
+            }
+            if (speed + speedChange > MAX_SPEED) {
+                speed = MAX_SPEED;
+            }
+            speed += speedChange;
+            System.out.println("[SPEEDOMETER] New Speed: " + speed);
+        }
+    }
+
+    public Speedometer() {
+        speed = rand.nextInt(100, 600);
+        ScheduledExecutorService timer = Executors.newScheduledThreadPool(1);
+        timer.scheduleAtFixedRate(new SpeedometerLogic(), 0, 1, TimeUnit.SECONDS);
+    }
+
+    class SpeedometerLogic implements Runnable {
+        ConnectionFactory cf = new ConnectionFactory();
+
+        @Override
+        public void run() {
+            transmit(getSpeed());
+        }
+
+        public void transmit(int speed) {
+            try (Connection connection = cf.newConnection();
+                 Channel channel = connection.createChannel()) {
+                channel.exchangeDeclare(Exchange.SENSOR_CONTROLLER_EXCHANGE.name, "topic");
+                channel.basicPublish(Exchange.SENSOR_CONTROLLER_EXCHANGE.name, Key.SPEED.name, false, null, String.valueOf(speed).getBytes());
+                System.out.println("[SPEEDOMETER] Speed: " + speed);
+            } catch (IOException | TimeoutException e) {
+                throw new RuntimeException(e);
+            }
         }
     }
 }

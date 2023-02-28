@@ -1,58 +1,118 @@
 package Consumer;
 
+import Controller.Exchange;
+import Controller.Key;
+import Producer.Altimeter;
+import Producer.Speedometer;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
-import com.rabbitmq.client.DeliverCallback;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
+import java.util.concurrent.*;
 
 public class Engine {
-    int speed = 0;
+    Speedometer speedometer;
+    Altimeter altimeter;
+    int throttle = 75;
+    final int DELTA = 25;
 
-    public void setEngineSpeed(int engineSpeed) {
-        this.speed = engineSpeed;
+    public Engine(Speedometer speedometer, Altimeter altimeter) {
+        this.speedometer = speedometer;
+        this.altimeter = altimeter;
+        ScheduledExecutorService timer = Executors.newScheduledThreadPool(1);
+        timer.scheduleAtFixedRate(new EngineLogic(), 0, 1, TimeUnit.SECONDS);
     }
 
-    public static void main(String[] args) {
-        ScheduledExecutorService engine = Executors.newScheduledThreadPool(1);
-        engine.scheduleAtFixedRate(new EngineLogic(), 0, 3, TimeUnit.SECONDS);
+    private void setThrottle(int newThrottle) {
+        throttle += newThrottle;
     }
-}
 
-class EngineLogic implements Runnable {
-    ConnectionFactory factory = new ConnectionFactory();
-    private static final String EXCHANGE_NAME = "controllerActuatorExchange";
+    class EngineLogic implements Runnable {
+        ConnectionFactory cf = new ConnectionFactory();
 
-    @Override
-    public void run() {
-        try {
-            Connection connection = factory.newConnection();
-            Channel channel = connection.createChannel();
+        public void changeThrottle(int newThrottle) {
+            if (throttle < newThrottle) {
+                setThrottle(DELTA);
+            } else if (throttle > newThrottle) {
+                setThrottle(-DELTA);
+            }
 
-            channel.exchangeDeclare(EXCHANGE_NAME, "topic");
-            String queueName = channel.queueDeclare().getQueue();
+            //TODO: Speed, Altitude, Pressure, Thermometer
+            System.out.println("[ENGINE] Engine throttle at " + throttle + "%");
+            changeSpeed(throttle);
+            changeAltitude(throttle);
+        }
 
-            channel.basicQos(1);
+        private void changeAltitude(int throttle) {
+            int altitudeChange = 0;
+            if (throttle >= 90) altitudeChange = 1000;
+            else if (throttle >= 75) altitudeChange = 500;
+            else if (throttle >= 50) altitudeChange = 0;
+            else if (throttle >= 25) altitudeChange = -500;
+            else if (throttle > 0) altitudeChange = -1000;
+            System.out.println("[ENGINE] Change altitude by " + altitudeChange);
+            altimeter.setAltitude(altitudeChange);
+        }
 
-            channel.queueBind(queueName, EXCHANGE_NAME, "speed");
+        private void changePressure(int throttle) {
+        }
 
-            DeliverCallback deliverCallback = (consumerTag, delivery) -> {
-                String message = new String(delivery.getBody(), StandardCharsets.UTF_8);
+        private void changeTemperature(int throttle) {
+        }
 
-                System.out.println(" [x] Received '" +
-                        delivery.getEnvelope().getRoutingKey() + "':'" + message + "'");
-            };
+        private void changeSpeed(int throttle) {
+            int acceleration;
+            if (throttle >= 90) acceleration = 50;
+            else if (throttle >= 75) acceleration = 25;
+            else if (throttle >= 50) acceleration = 0;
+            else if (throttle >= 25) acceleration = -25;
+            else if (throttle > 0) acceleration = -50;
+            else acceleration = -100;
 
-            channel.basicConsume(queueName, true, deliverCallback, consumerTag -> {
-            });
-        } catch (IOException | TimeoutException e) {
-            throw new RuntimeException(e);
+            System.out.println("[ENGINE] Change speed by " + acceleration);
+            speedometer.setSpeed(acceleration);
+        }
+
+        public void transmit(String message, String change, String key) {
+            try (Connection connection = cf.newConnection();
+                 Channel channel = connection.createChannel()) {
+                channel.exchangeDeclare(Exchange.ACTUATOR_SENSOR_EXCHANGE.name, "direct");
+                channel.basicPublish(Exchange.ACTUATOR_SENSOR_EXCHANGE.name, key, false, null, change.getBytes());
+                System.out.println(message + change);
+                Thread.sleep(100);
+            } catch (IOException | TimeoutException | InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        public String receive() {
+            try {
+                Connection con = cf.newConnection();
+                Channel chan = con.createChannel();
+                chan.exchangeDeclare(Exchange.CONTROLLER_ACTUATOR_EXCHANGE.name, "topic");
+                String qName = chan.queueDeclare().getQueue();
+                chan.basicQos(1);
+                chan.queueBind(qName, Exchange.CONTROLLER_ACTUATOR_EXCHANGE.name, Key.ENGINE.name);
+                final CompletableFuture<String> messageResponse = new CompletableFuture<>();
+                chan.basicConsume(qName, (x, msg) -> {
+                    String message = new String(msg.getBody(), StandardCharsets.UTF_8);
+                    messageResponse.complete(message);
+                }, x -> {
+
+                });
+                return messageResponse.get();
+            } catch (IOException | TimeoutException | ExecutionException | InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        @Override
+        public void run() {
+            String message = receive();
+            int newThrottle = Integer.parseInt(message);
+            changeThrottle(newThrottle);
         }
     }
 }

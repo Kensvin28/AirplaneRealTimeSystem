@@ -1,5 +1,7 @@
 package Producer;
 
+import Controller.Exchange;
+import Controller.Key;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
@@ -11,31 +13,22 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-public class WeatherSystem {
-    public static void main(String[] args) {
-        ScheduledExecutorService weatherSystem = Executors.newScheduledThreadPool(1);
-        weatherSystem.scheduleAtFixedRate(new WeatherSystemLogic(), 0, 3, TimeUnit.SECONDS);
-    }
-}
-
-class WeatherSystemLogic implements Runnable {
+public class WeatherSystem implements Runnable {
     Random rand = new Random();
-    String EXCHANGE_NAME = "sensorControllerExchange";
+    String EXCHANGE_TYPE = "topic";
     ConnectionFactory cf = new ConnectionFactory();
+    String weather = "";
 
-    public WeatherSystemLogic() {
+    public WeatherSystem() {
     }
 
     @Override
     public void run() {
-        String currentWeather = getWeather();
-        transmit(currentWeather);
+        transmit(getWeather());
     }
 
     public String getWeather() {
-        String weather = "";
         int currentWeather = rand.nextInt(1, 3);
-        System.out.println("Weather: " + currentWeather);
         weather = switch (currentWeather) {
             case 1 -> "rainy";
             case 2 -> "cloudy";
@@ -47,8 +40,8 @@ class WeatherSystemLogic implements Runnable {
     public void transmit(String weather) {
         try (Connection connection = cf.newConnection();
              Channel channel = connection.createChannel()) {
-            channel.exchangeDeclare(EXCHANGE_NAME, "fanout");
-            channel.basicPublish(EXCHANGE_NAME, "", false, null, weather.getBytes());
+            channel.exchangeDeclare(Exchange.SENSOR_CONTROLLER_EXCHANGE.name, EXCHANGE_TYPE);
+            channel.basicPublish(Exchange.SENSOR_CONTROLLER_EXCHANGE.name, Key.WEATHER.name, false, null, weather.getBytes());
             System.out.println("Weather: " + weather);
             Thread.sleep(100);
         } catch (IOException | TimeoutException | InterruptedException e) {
