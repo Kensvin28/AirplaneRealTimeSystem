@@ -7,6 +7,8 @@ public enum Key {
     PRESSURE("pressure"),
     WING_FLAPS("wingFlaps"),
     PRESSURIZER("pressurizer"),
+    OXYGEN_MASKS("oxygen_masks"),
+    LANDING_GEAR("landing_gear"),
     ENGINE("engine")
     ;
 

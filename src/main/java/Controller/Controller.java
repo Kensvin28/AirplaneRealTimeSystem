@@ -40,58 +40,73 @@ class ControllerLogic implements Runnable {
             }
             case "pressure" -> {
                 CompletableFuture.runAsync(() -> handlePressurizer(message));
-//                CompletableFuture.runAsync(() -> handleOxygenMasks(message));
+                CompletableFuture.runAsync(() -> handleOxygenMasks(message));
             }
             case "speed" -> {
                 CompletableFuture.runAsync(() -> handleEngine(message));
 //                CompletableFuture.runAsync(() -> handleFlaps(message));
             }
             case "weather" -> {
-                CompletableFuture.runAsync(() -> handleRudder(message));
+                CompletableFuture.runAsync(() -> handleTailFlaps(message));
 //                CompletableFuture.runAsync(() -> handleFlaps(message));
             }
-//            case "temperature":
-//                CompletableFuture.runAsync(() -> handleEngine(message));
-//                CompletableFuture.runAsync(() -> handleFlaps(message));
-//                break;
         }
     }
 
-    private void handleRudder(String message) {
+    private void handleTailFlaps(String message) {
     }
 
     private void handleOxygenMasks(String message) {
+        int pressure = Integer.parseInt(message);
+        String instruction = "";
+        if (pressure < 8) {
+            instruction = "drop";
+            System.out.println("[CONTROLLER] Dropping oxygen masks");
+            transmit(instruction, Key.OXYGEN_MASKS.name);
+        }
     }
 
     private void handlePressurizer(String message) {
+        int pressure = Integer.parseInt(message);
+        String instruction = "";
+        if (pressure > 12) instruction = "release";
+        else if (pressure > 10) return;
+        else if (pressure > 1) instruction = "suck";
+        System.out.println("[CONTROLLER] Telling pressurizer to " + instruction + " air");
+        transmit(instruction, Key.PRESSURIZER.name);
     }
 
     private void handleLandingGear(String message) {
+        int altitude = Integer.parseInt(message);
+        String instruction = "";
+        if (altitude < 1000) instruction = "lower";
+        System.out.println("[CONTROLLER] Instructing landing gear to be lowered");
+        transmit(instruction, Key.LANDING_GEAR.name);
     }
 
     private void handleEngine(String message) {
         // TODO: Formulate function that can model various factors
         int speed = Integer.parseInt(message);
-        String engineInstruction = "";
-        if (speed > 550) engineInstruction = "25";
-        else if (speed > 525) engineInstruction = "50";
-        else if (speed > 500) engineInstruction = "75";
-        else if (speed >= 100) engineInstruction = "100";
-        System.out.println("[CONTROLLER] Telling engine to change throttle to " + engineInstruction + "%");
-        transmit(engineInstruction, Key.ENGINE.name);
+        String instruction = "";
+        if (speed > 550) instruction = "25";
+        else if (speed > 525) instruction = "50";
+        else if (speed > 500) instruction = "75";
+        else if (speed >= 100) instruction = "100";
+        System.out.println("[CONTROLLER] Telling engine to change throttle to " + instruction + "%");
+        transmit(instruction, Key.ENGINE.name);
     }
 
     public void handleFlaps(String message) {
         int altitude = Integer.parseInt(message);
-        String flapInstruction = "";
+        String instruction = "";
         //TODO: Landing special case
-        if (altitude > 49_000) flapInstruction = "-60";
-        else if (altitude > 45_000) flapInstruction = "-30";
+        if (altitude > 49_000) instruction = "-60";
+        else if (altitude > 45_000) instruction = "-30";
         else if (altitude > 40_000) return;
-        else if (altitude > 35_000) flapInstruction = "30";
-        else if (altitude >= 30_000) flapInstruction = "60";
-        System.out.println("[CONTROLLER] Telling flap to change its angle to " + flapInstruction + "°");
-        transmit(flapInstruction, Key.WING_FLAPS.name);
+        else if (altitude > 35_000) instruction = "30";
+        else if (altitude >= 30_000) instruction = "60";
+        System.out.println("[CONTROLLER] Telling flap to change its angle to " + instruction + "°");
+        transmit(instruction, Key.WING_FLAPS.name);
     }
 
     private Delivery receive() {

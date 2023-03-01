@@ -23,7 +23,7 @@ public class WingFlaps {
     public WingFlaps(Altimeter altimeter) {
         this.altimeter = altimeter;
         ScheduledExecutorService timer = Executors.newScheduledThreadPool(1);
-        timer.scheduleAtFixedRate(new WingFlapsLogic(), 0, 3, TimeUnit.SECONDS);
+        timer.scheduleAtFixedRate(new WingFlapsLogic(), 0, 1, TimeUnit.SECONDS);
     }
 
     class WingFlapsLogic implements Runnable {
@@ -80,7 +80,4 @@ public class WingFlaps {
             }
         }
     }
-
-
 }
-
