@@ -7,7 +7,7 @@ public enum Exchange {
 
     public final String name;
 
-    private Exchange(String name) {
+    Exchange(String name) {
         this.name = name;
     }
 }

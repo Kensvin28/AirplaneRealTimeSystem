@@ -2,10 +2,6 @@ package Consumer;
 
 import Producer.Altimeter;
 
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-
 public class TailFlaps {
     int angle = 0;
 

@@ -1,18 +1,8 @@
 package Controller;
 
 import Consumer.*;
-import com.rabbitmq.client.Channel;
-import com.rabbitmq.client.Connection;
-import com.rabbitmq.client.ConnectionFactory;
 
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Random;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Phaser;
-import java.util.concurrent.TimeoutException;
 
 public class Cruising extends ControllerLogic implements Runnable {
 

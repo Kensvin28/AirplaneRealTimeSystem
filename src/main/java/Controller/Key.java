@@ -15,7 +15,7 @@ public enum Key {
 
     public final String name;
 
-    private Key(String name) {
+    Key(String name) {
         this.name = name;
     }
 }

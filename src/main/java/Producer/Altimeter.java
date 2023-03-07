@@ -1,15 +1,6 @@
 package Producer;
 
-import Controller.Exchange;
-import Controller.Key;
-import com.rabbitmq.client.Channel;
-import com.rabbitmq.client.Connection;
-import com.rabbitmq.client.ConnectionFactory;
-
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.Random;
-import java.util.concurrent.*;
 
 public class Altimeter {
     Random rand = new Random();
