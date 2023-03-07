@@ -22,40 +22,20 @@ public class Speedometer {
     public void setSpeed(int speedChange) {
         if(speedChange != 0) {
             // speed limit
-            if (speed - speedChange < 0) {
+            if (speed + speedChange < 0) {
                 speed = 0;
-            }
-            if (speed + speedChange > MAX_SPEED) {
+            } else if (speed + speedChange > MAX_SPEED) {
                 speed = MAX_SPEED;
+            } else {
+                speed += speedChange;
+                System.out.println("[SPEEDOMETER] New Speed: " + speed);
             }
-            speed += speedChange;
-            System.out.println("[SPEEDOMETER] New Speed: " + speed);
         }
     }
 
     public Speedometer() {
         speed = rand.nextInt(100, 600);
-        ScheduledExecutorService timer = Executors.newScheduledThreadPool(1);
-        timer.scheduleAtFixedRate(new SpeedometerLogic(), 0, 1, TimeUnit.SECONDS);
-    }
-
-    class SpeedometerLogic implements Runnable {
-        ConnectionFactory cf = new ConnectionFactory();
-
-        @Override
-        public void run() {
-            transmit(getSpeed());
-        }
-
-        public void transmit(int speed) {
-            try (Connection connection = cf.newConnection();
-                 Channel channel = connection.createChannel()) {
-                channel.exchangeDeclare(Exchange.SENSOR_CONTROLLER_EXCHANGE.name, "topic");
-                channel.basicPublish(Exchange.SENSOR_CONTROLLER_EXCHANGE.name, Key.SPEED.name, false, null, String.valueOf(speed).getBytes());
-                System.out.println("[SPEEDOMETER] Speed: " + speed);
-            } catch (IOException | TimeoutException e) {
-                throw new RuntimeException(e);
-            }
-        }
+//        ScheduledExecutorService timer = Executors.newScheduledThreadPool(1);
+//        timer.scheduleAtFixedRate(new SpeedometerLogic(), 0, 1, TimeUnit.SECONDS);
     }
 }

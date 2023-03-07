@@ -14,49 +14,12 @@ import java.util.concurrent.*;
 public class OxygenMasks {
     boolean active = false;
 
-    private void setActive(boolean state){
+    public void setActive(boolean state){
         active = state;
     }
+    public boolean isActive() {return active;}
 
     public OxygenMasks() {
-        ScheduledExecutorService timer = Executors.newScheduledThreadPool(1);
-        timer.scheduleAtFixedRate(new OxygenMasksLogic(), 0, 1, TimeUnit.SECONDS);
-    }
 
-    class OxygenMasksLogic implements Runnable {
-        ConnectionFactory cf = new ConnectionFactory();
-
-        @Override
-        public void run() {
-            String message = receive();
-            drop(message);
-        }
-
-        public void drop(String instruction) {
-            if (instruction.equals("drop")) {
-                setActive(true);
-                System.out.println("[OXYGEN MASKS] MASKS DROPPED");
-            }
-        }
-
-        public String receive(){
-            try {
-                Connection con = cf.newConnection();
-                Channel chan = con.createChannel();
-                chan.exchangeDeclare(Exchange.CONTROLLER_ACTUATOR_EXCHANGE.name, "topic");
-                String qName = chan.queueDeclare().getQueue();
-                chan.basicQos(1);
-                chan.queueBind(qName, Exchange.CONTROLLER_ACTUATOR_EXCHANGE.name, Key.OXYGEN_MASKS.name);
-                final CompletableFuture<String> messageResponse = new CompletableFuture<>();
-                chan.basicConsume(qName, (x, msg) -> {
-                    messageResponse.complete(new String(msg.getBody(), StandardCharsets.UTF_8));
-                }, x -> {
-
-                });
-                return messageResponse.get();
-            } catch (IOException | TimeoutException | ExecutionException | InterruptedException e) {
-                throw new RuntimeException(e);
-            }
-        }
     }
 }

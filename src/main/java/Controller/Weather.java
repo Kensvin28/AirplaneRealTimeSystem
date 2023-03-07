@@ -1,7 +1,10 @@
 package Controller;
 
 public enum Weather {
-    rainy,
-    cloudy,
-    sunny
+    STORMY("stormy"),
+    CLOUDY("cloudy"),
+    SUNNY("sunny");
+
+    Weather(String weather){
+    }
 }

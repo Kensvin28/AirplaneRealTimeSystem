@@ -13,44 +13,28 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 public class Barometer {
+    Altimeter altimeter;
     Random rand = new Random();
-    int pressure;
+    double pressure;
 
-    public int getPressure() {
+    public double getPressure() {
         return pressure;
     }
 
-    public void setPressure(int pressureChange) {
-        if (pressureChange != 0) {
+    public void setPressure(double pressureChange) {
+        // set lowest pressure limit to 3
+        if(pressure < 3) {
+            pressure = 3;
+        } else{
             pressure += pressureChange;
             System.out.println("[BAROMETER] New Pressure: " + pressure);
         }
     }
 
-    public Barometer() {
+    public Barometer(Altimeter altimeter) {
+        this.altimeter = altimeter;
         pressure = rand.nextInt(10, 13);
-        ScheduledExecutorService timer = Executors.newScheduledThreadPool(1);
-        timer.scheduleAtFixedRate(new BarometerLogic(), 0, 1, TimeUnit.SECONDS);
-    }
-
-    class BarometerLogic implements Runnable {
-        ConnectionFactory cf = new ConnectionFactory();
-
-        @Override
-        public void run() {
-            transmit(pressure);
-        }
-
-        public void transmit(int pressure) {
-            try (Connection connection = cf.newConnection();
-                 Channel channel = connection.createChannel()) {
-                channel.exchangeDeclare(Exchange.SENSOR_CONTROLLER_EXCHANGE.name, "topic");
-                channel.basicPublish(Exchange.SENSOR_CONTROLLER_EXCHANGE.name, Key.PRESSURE.name, false, null, String.valueOf(pressure).getBytes());
-                System.out.println("[BAROMETER] Cabin Pressure: " + pressure);
-                Thread.sleep(100);
-            } catch (IOException | TimeoutException | InterruptedException e) {
-                throw new RuntimeException(e);
-            }
-        }
+//        ScheduledExecutorService timer = Executors.newScheduledThreadPool(1);
+//        timer.scheduleAtFixedRate(new BarometerLogic(), 0, 1, TimeUnit.SECONDS);
     }
 }
