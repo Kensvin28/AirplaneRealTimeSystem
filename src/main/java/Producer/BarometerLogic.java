@@ -2,6 +2,7 @@ package Producer;
 
 import Controller.Exchange;
 import Controller.Key;
+import com.rabbitmq.client.BuiltinExchangeType;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
@@ -38,7 +39,7 @@ public class BarometerLogic implements Runnable {
     public void transmit(double pressure) {
         try (Connection connection = cf.newConnection();
              Channel channel = connection.createChannel()) {
-            channel.exchangeDeclare(Exchange.SENSOR_CONTROLLER_EXCHANGE.name, "topic");
+            channel.exchangeDeclare(Exchange.SENSOR_CONTROLLER_EXCHANGE.name, BuiltinExchangeType.TOPIC);
             channel.basicPublish(Exchange.SENSOR_CONTROLLER_EXCHANGE.name, Key.PRESSURE.name, false, null, String.valueOf(pressure).getBytes());
             System.out.println("[BAROMETER] Cabin Pressure: " + pressure);
         } catch (IOException | TimeoutException e) {

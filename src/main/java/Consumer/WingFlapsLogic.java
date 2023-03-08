@@ -3,6 +3,7 @@ package Consumer;
 import Controller.Exchange;
 import Controller.Key;
 import Producer.Altimeter;
+import com.rabbitmq.client.BuiltinExchangeType;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
@@ -79,9 +80,9 @@ public class WingFlapsLogic implements Runnable {
 //
 //            });
 
-            chan.exchangeDeclare(Exchange.CONTROLLER_ACTUATOR_EXCHANGE.name, "topic");
+            chan.exchangeDeclare(Exchange.CONTROLLER_ACTUATOR_EXCHANGE.name, BuiltinExchangeType.TOPIC);
             String qName = chan.queueDeclare().getQueue();
-//            chan.basicQos(1);
+            chan.basicQos(1);
             chan.queueBind(qName, Exchange.CONTROLLER_ACTUATOR_EXCHANGE.name, Key.WING_FLAPS.name);
             final CompletableFuture<String> messageResponse = new CompletableFuture<>();
             chan.basicConsume(qName, (x, msg) -> {

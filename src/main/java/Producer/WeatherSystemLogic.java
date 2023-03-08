@@ -2,6 +2,7 @@ package Producer;
 
 import Controller.Exchange;
 import Controller.Key;
+import com.rabbitmq.client.BuiltinExchangeType;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
@@ -25,7 +26,7 @@ public class WeatherSystemLogic implements Runnable {
     public void transmit(String weather) {
         try (Connection connection = cf.newConnection();
              Channel channel = connection.createChannel()) {
-            channel.exchangeDeclare(Exchange.SENSOR_CONTROLLER_EXCHANGE.name, "topic");
+            channel.exchangeDeclare(Exchange.SENSOR_CONTROLLER_EXCHANGE.name, BuiltinExchangeType.TOPIC);
             channel.basicPublish(Exchange.SENSOR_CONTROLLER_EXCHANGE.name, Key.WEATHER.name(), false, null, weather.getBytes());
             System.out.println("[WEATHER SYSTEM] Weather: " + weather);
         } catch (IOException | TimeoutException e) {
