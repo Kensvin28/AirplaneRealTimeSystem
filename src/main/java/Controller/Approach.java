@@ -59,6 +59,8 @@ public class Approach extends ControllerLogic implements Runnable {
 
         // Touch down
         if (altitude == 0) instruction = "-100";
+        // Stop plane
+        if (speed == 0) instruction = "0";
         System.out.println("[CONTROLLER] Telling engine to change throttle to " + instruction + "%");
         transmit(instruction, Key.ENGINE.name);
     }

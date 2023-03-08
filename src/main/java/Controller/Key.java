@@ -5,12 +5,12 @@ public enum Key {
     WEATHER("weather"),
     SPEED("speed"),
     PRESSURE("pressure"),
-    WING_FLAPS("wingFlaps"),
-    TAIL_FLAPS("tailFlaps"),
-    PRESSURIZER("pressurizer"),
-    OXYGEN_MASKS("oxygenMasks"),
-    LANDING_GEAR("landingGear"),
-    ENGINE("engine")
+    WING_FLAPS("wingFlaps.#"),
+    TAIL_FLAPS("tailFlaps.#"),
+    PRESSURIZER("pressurizer.#"),
+    OXYGEN_MASKS("oxygenMasks.#"),
+    LANDING_GEAR("landingGear.#"),
+    ENGINE("engine.#")
     ;
 
     public final String name;

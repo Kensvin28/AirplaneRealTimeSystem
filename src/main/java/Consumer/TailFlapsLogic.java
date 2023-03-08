@@ -11,24 +11,30 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Phaser;
 import java.util.concurrent.TimeoutException;
 
 public class TailFlapsLogic implements Runnable {
     ConnectionFactory cf = new ConnectionFactory();
+    Phaser connection;
+    Connection con;
+    Channel chan;
+    Channel chan2;
     TailFlaps tailFlaps;
     Altimeter altimeter;
     final int DELTA = 30;
 
-    public TailFlapsLogic(TailFlaps tailFlaps, Altimeter altimeter){
+    public TailFlapsLogic(TailFlaps tailFlaps, Altimeter altimeter, Phaser connection) {
         this.tailFlaps = tailFlaps;
         this.altimeter = altimeter;
-    }
-
-    @Override
-    public void run() {
-        String message = receive();
-        int newAngle = Integer.parseInt(message);
-        moveFlaps(newAngle);
+        this.connection = connection;
+        try {
+            con = cf.newConnection();
+            chan = con.createChannel();
+            chan2 = con.createChannel();
+        } catch (IOException | TimeoutException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public void moveFlaps(int newAngle) {
@@ -55,23 +61,56 @@ public class TailFlapsLogic implements Runnable {
         altimeter.setAltitude(altitudeChange);
     }
 
-    public String receive(){
+    public String receive() {
         try {
-            Connection con = cf.newConnection();
-            Channel chan = con.createChannel();
+//            chan2.exchangeDeclare(Exchange.SWITCH_OFF_EXCHANGE.name, "fanout");
+//            String qName = chan2.queueDeclare().getQueue();
+//            chan2.queueBind(qName, Exchange.SWITCH_OFF_EXCHANGE.name, "");
+//            chan2.basicConsume(qName, (x, msg) -> {
+//                try {
+//                    chan.close();
+//                    chan2.close();
+//                    con.close();
+//                }
+//                catch (TimeoutException e) {
+//
+//                }
+//            }, x -> {
+//
+//            });
+
             chan.exchangeDeclare(Exchange.CONTROLLER_ACTUATOR_EXCHANGE.name, "topic");
             String qName = chan.queueDeclare().getQueue();
-            chan.basicQos(1);
+//            chan.basicQos(1);
             chan.queueBind(qName, Exchange.CONTROLLER_ACTUATOR_EXCHANGE.name, Key.TAIL_FLAPS.name);
             final CompletableFuture<String> messageResponse = new CompletableFuture<>();
             chan.basicConsume(qName, (x, msg) -> {
+                if (msg.getEnvelope().getRoutingKey().contains("off")) {
+                    try {
+                        if(chan.isOpen()) {
+                            chan.close();
+                        }
+                        if(con.isOpen()) {
+                            con.close();
+                        }
+                    } catch (TimeoutException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
                 messageResponse.complete(new String(msg.getBody(), StandardCharsets.UTF_8));
             }, x -> {
 
             });
             return messageResponse.get();
-        } catch (IOException | TimeoutException | ExecutionException | InterruptedException e) {
+        } catch (IOException | ExecutionException | InterruptedException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    @Override
+    public void run() {
+        String message = receive();
+        int newAngle = Integer.parseInt(message);
+        moveFlaps(newAngle);
     }
 }

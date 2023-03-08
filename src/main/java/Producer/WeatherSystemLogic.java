@@ -26,7 +26,7 @@ public class WeatherSystemLogic implements Runnable {
         try (Connection connection = cf.newConnection();
              Channel channel = connection.createChannel()) {
             channel.exchangeDeclare(Exchange.SENSOR_CONTROLLER_EXCHANGE.name, "topic");
-            channel.basicPublish(Exchange.SENSOR_CONTROLLER_EXCHANGE.name, Key.WEATHER.name, false, null, weather.getBytes());
+            channel.basicPublish(Exchange.SENSOR_CONTROLLER_EXCHANGE.name, Key.WEATHER.name(), false, null, weather.getBytes());
             System.out.println("[WEATHER SYSTEM] Weather: " + weather);
         } catch (IOException | TimeoutException e) {
             throw new RuntimeException(e);

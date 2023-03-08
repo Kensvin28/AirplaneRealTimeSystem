@@ -35,6 +35,12 @@ public abstract class ControllerLogic implements FlightMode {
         this.pressurizer = pressurizer;
         this.wingFlaps = wingFlaps;
         this.phaser = phaser;
+        try {
+            con = cf.newConnection();
+            chan = con.createChannel();
+        } catch (IOException | TimeoutException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public void setLanding(boolean landing) {
@@ -42,13 +48,16 @@ public abstract class ControllerLogic implements FlightMode {
         if(landing) {
             try {
                 System.err.println("Plane is going to land");
-                chan.close();
-                con.close();
+                if(chan.isOpen()) {
+                    chan.close();
+                }
+                if(con.isOpen()) {
+                    con.close();
+                }
                 phaser.arriveAndDeregister();
             } catch (IOException | TimeoutException e) {
                 throw new RuntimeException(e);
             }
-
         }
     }
 
@@ -57,8 +66,12 @@ public abstract class ControllerLogic implements FlightMode {
         if(approaching) {
             try {
                 System.err.println("Approaching runway...");
-                chan.close();
-                con.close();
+                if(chan.isOpen()) {
+                    chan.close();
+                }
+                if(con.isOpen()) {
+                    con.close();
+                }
             } catch (IOException | TimeoutException e) {
                 throw new RuntimeException(e);
             }
@@ -70,22 +83,19 @@ public abstract class ControllerLogic implements FlightMode {
         this.end = end;
         if(end) {
             try {
+                off();
+                Thread.sleep(3000);
                 System.err.println("Plane landed successfully");
-                chan.close();
-                con.close();
-            } catch (IOException | TimeoutException e) {
+                if(chan.isOpen()) {
+                    chan.close();
+                }
+                if(con.isOpen()) {
+                    con.close();
+                }
+            } catch (IOException | TimeoutException | InterruptedException e) {
                 throw new RuntimeException(e);
             }
-
         }
-    }
-
-    public Channel getChannel() {
-        return chan;
-    }
-
-    public Connection getConnection() {
-        return con;
     }
 
     public void handleOxygenMasks() {
@@ -126,11 +136,9 @@ public abstract class ControllerLogic implements FlightMode {
 
     void receive() {
         try {
-            con = cf.newConnection();
-            chan = con.createChannel();
             chan.exchangeDeclare(Exchange.SENSOR_CONTROLLER_EXCHANGE.name, "topic");
             String qName = chan.queueDeclare().getQueue();
-            chan.basicQos(1);
+//            chan.basicQos(1);
             chan.queueBind(qName, Exchange.SENSOR_CONTROLLER_EXCHANGE.name, "#");
             chan.basicConsume(qName, (x, msg) -> {
                 String sender = msg.getEnvelope().getRoutingKey();
@@ -140,7 +148,7 @@ public abstract class ControllerLogic implements FlightMode {
             }, x -> {
 
             });
-        } catch (IOException | TimeoutException e) {
+        } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
@@ -174,6 +182,21 @@ public abstract class ControllerLogic implements FlightMode {
              Channel channel = connection.createChannel()) {
             channel.exchangeDeclare(Exchange.CONTROLLER_ACTUATOR_EXCHANGE.name, "topic");
             channel.basicPublish(Exchange.CONTROLLER_ACTUATOR_EXCHANGE.name, key, false, null, instruction.getBytes());
+        } catch (IOException | TimeoutException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    void off(){
+        try (Connection connection = cf.newConnection();
+             Channel channel = connection.createChannel()) {
+            channel.exchangeDeclare(Exchange.CONTROLLER_ACTUATOR_EXCHANGE.name, "topic");
+            channel.basicPublish(Exchange.CONTROLLER_ACTUATOR_EXCHANGE.name, Key.ENGINE.name + ".off", false, null, "off".getBytes());
+            channel.basicPublish(Exchange.CONTROLLER_ACTUATOR_EXCHANGE.name, Key.LANDING_GEAR.name + ".off", false, null, "off".getBytes());
+            channel.basicPublish(Exchange.CONTROLLER_ACTUATOR_EXCHANGE.name, Key.OXYGEN_MASKS.name + ".off", false, null, "off".getBytes());
+            channel.basicPublish(Exchange.CONTROLLER_ACTUATOR_EXCHANGE.name, Key.PRESSURIZER.name + ".off", false, null, "off".getBytes());
+            channel.basicPublish(Exchange.CONTROLLER_ACTUATOR_EXCHANGE.name, Key.TAIL_FLAPS.name + ".off", false, null, "off".getBytes());
+            channel.basicPublish(Exchange.CONTROLLER_ACTUATOR_EXCHANGE.name, Key.WING_FLAPS.name + ".off", false, null, "off".getBytes());
         } catch (IOException | TimeoutException e) {
             throw new RuntimeException(e);
         }

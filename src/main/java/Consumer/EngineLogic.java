@@ -12,19 +12,31 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Phaser;
 import java.util.concurrent.TimeoutException;
 
 public class EngineLogic implements Runnable {
     ConnectionFactory cf = new ConnectionFactory();
     Speedometer speedometer;
+    Connection con;
+    Channel chan;
+    Phaser connection;
+
 //    Altimeter altimeter;
     Engine engine;
     final int DELTA = 25;
 
-    public EngineLogic(Engine engine, Speedometer speedometer, Altimeter altimeter) {
+    public EngineLogic(Engine engine, Speedometer speedometer, Altimeter altimeter, Phaser connection) {
         this.engine = engine;
         this.speedometer = speedometer;
+        this.connection = connection;
 //        this.altimeter = altimeter;
+        try {
+            con = cf.newConnection();
+            chan = con.createChannel();
+        } catch (IOException | TimeoutException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public void changeThrottle(int newThrottle) {
@@ -68,21 +80,46 @@ public class EngineLogic implements Runnable {
 
     public String receive() {
         try {
-            Connection con = cf.newConnection();
-            Channel chan = con.createChannel();
+//            chan2.exchangeDeclare(Exchange.SWITCH_OFF_EXCHANGE.name, "fanout");
+//            String qName = chan2.queueDeclare().getQueue();
+//            chan2.queueBind(qName, Exchange.SWITCH_OFF_EXCHANGE.name, "");
+//            chan2.basicConsume(qName, (x, msg) -> {
+//                try {
+//                    chan.close();
+////                    chan2.close();
+//                    con.close();
+//                }
+//                catch (TimeoutException e) {
+//
+//                }
+//            }, x -> {
+//
+//            });
+
             chan.exchangeDeclare(Exchange.CONTROLLER_ACTUATOR_EXCHANGE.name, "topic");
             String qName = chan.queueDeclare().getQueue();
-            chan.basicQos(1);
+//            chan.basicQos(1);
             chan.queueBind(qName, Exchange.CONTROLLER_ACTUATOR_EXCHANGE.name, Key.ENGINE.name);
             final CompletableFuture<String> messageResponse = new CompletableFuture<>();
             chan.basicConsume(qName, (x, msg) -> {
-                String message = new String(msg.getBody(), StandardCharsets.UTF_8);
-                messageResponse.complete(message);
+                if (msg.getEnvelope().getRoutingKey().contains("off")) {
+                    try {
+                        if(chan.isOpen()) {
+                            chan.close();
+                        }
+                        if(con.isOpen()) {
+                            con.close();
+                        }
+                    } catch (TimeoutException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+                messageResponse.complete(new String(msg.getBody(), StandardCharsets.UTF_8));
             }, x -> {
 
             });
             return messageResponse.get();
-        } catch (IOException | TimeoutException | ExecutionException | InterruptedException e) {
+        } catch (IOException | ExecutionException | InterruptedException e) {
             throw new RuntimeException(e);
         }
     }

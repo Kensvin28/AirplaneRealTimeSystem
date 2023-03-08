@@ -10,11 +10,14 @@ import java.util.concurrent.*;
 
 public class Simulation {
     public static void main(String[] args) {
+        final int PERIOD = 100;
         Random random = new Random();
 
         // initialise phaser for cruising, descending, and approach phases
         Phaser phaser = new Phaser();
+        Phaser connection = new Phaser();
         phaser.register();
+        connection.register();
 
         // initialise sensors
         Altimeter altimeter = new Altimeter();
@@ -37,24 +40,24 @@ public class Simulation {
         BarometerLogic barometerLogic = new BarometerLogic(barometer, altimeter);
         WeatherSystemLogic weatherSystemLogic = new WeatherSystemLogic(weatherSystem);
 
-        EngineLogic engineLogic = new EngineLogic(engine, speedometer, altimeter);
-        LandingGearLogic landingGearLogic = new LandingGearLogic(landingGear);
-        OxygenMasksLogic oxygenMasksLogic = new OxygenMasksLogic(oxygenMasks);
-        PressurizerLogic pressurizerLogic = new PressurizerLogic(pressurizer, barometer);
-        TailFlapsLogic tailFlapsLogic = new TailFlapsLogic(tailFlaps, altimeter);
-        WingFlapsLogic wingFlapsLogic = new WingFlapsLogic(wingFlaps, altimeter);
+        EngineLogic engineLogic = new EngineLogic(engine, speedometer, altimeter, connection);
+        LandingGearLogic landingGearLogic = new LandingGearLogic(landingGear, connection);
+        OxygenMasksLogic oxygenMasksLogic = new OxygenMasksLogic(oxygenMasks, connection);
+        PressurizerLogic pressurizerLogic = new PressurizerLogic(pressurizer, barometer, connection);
+        TailFlapsLogic tailFlapsLogic = new TailFlapsLogic(tailFlaps, altimeter, connection);
+        WingFlapsLogic wingFlapsLogic = new WingFlapsLogic(wingFlaps, altimeter, connection);
 
-        timer.scheduleAtFixedRate(altimeterLogic, 0, 1, TimeUnit.MILLISECONDS);
-        timer.scheduleAtFixedRate(speedometerLogic, 0, 1, TimeUnit.MILLISECONDS);
-        timer.scheduleAtFixedRate(barometerLogic, 0, 1, TimeUnit.MILLISECONDS);
+        timer.scheduleAtFixedRate(altimeterLogic, 0, PERIOD, TimeUnit.MILLISECONDS);
+        timer.scheduleAtFixedRate(speedometerLogic, 0, PERIOD, TimeUnit.MILLISECONDS);
+        timer.scheduleAtFixedRate(barometerLogic, 0, PERIOD, TimeUnit.MILLISECONDS);
         timer.scheduleAtFixedRate(weatherSystemLogic, 0, 10, TimeUnit.SECONDS);
 
-        timer.scheduleAtFixedRate(engineLogic, 0, 1, TimeUnit.MILLISECONDS);
-        timer.scheduleAtFixedRate(landingGearLogic, 0, 1, TimeUnit.MILLISECONDS);
-        timer.scheduleAtFixedRate(oxygenMasksLogic, 0, 1, TimeUnit.MILLISECONDS);
-        timer.scheduleAtFixedRate(pressurizerLogic, 0, 1, TimeUnit.MILLISECONDS);
-        timer.scheduleAtFixedRate(tailFlapsLogic, 0, 1, TimeUnit.MILLISECONDS);
-        timer.scheduleAtFixedRate(wingFlapsLogic, 0, 1, TimeUnit.MILLISECONDS);
+        timer.scheduleAtFixedRate(engineLogic, 0, PERIOD, TimeUnit.MILLISECONDS);
+        timer.scheduleAtFixedRate(landingGearLogic, 0, PERIOD, TimeUnit.MILLISECONDS);
+        timer.scheduleAtFixedRate(oxygenMasksLogic, 0, PERIOD, TimeUnit.MILLISECONDS);
+        timer.scheduleAtFixedRate(pressurizerLogic, 0, PERIOD, TimeUnit.MILLISECONDS);
+        timer.scheduleAtFixedRate(tailFlapsLogic, 0, PERIOD, TimeUnit.MILLISECONDS);
+        timer.scheduleAtFixedRate(wingFlapsLogic, 0, PERIOD, TimeUnit.MILLISECONDS);
 
 //        timer.scheduleAtFixedRate(altimeterLogic, 0, 500, TimeUnit.MILLISECONDS);
 //        timer.scheduleAtFixedRate(speedometerLogic, 0, 500, TimeUnit.MILLISECONDS);
@@ -75,7 +78,7 @@ public class Simulation {
         Runnable changeMode = () -> {
             // change to descending mode
             cruising.setLanding(true);
-            ex.shutdown();
+            ex.shutdownNow();
             phaser.arriveAndAwaitAdvance();
 
             // change to descending mode
@@ -86,23 +89,25 @@ public class Simulation {
 
             // change to approaching mode
             descent.setApproaching(true);
-            ex2.shutdown();
+            ex2.shutdownNow();
             ExecutorService ex3 = Executors.newCachedThreadPool();
             Approach approach = new Approach(engine, landingGear, oxygenMasks, pressurizer, wingFlaps, phaser);
             ex3.submit(approach);
             phaser.arriveAndAwaitAdvance();
 
             approach.setEnd(true);
-            ex3.shutdown();
-            timer.shutdown();
+            ex3.shutdownNow();
+            timer.shutdownNow();
+//            int i = 1;
+//            Set<Thread> threadSet = Thread.getAllStackTraces().keySet();
+//            for (Thread t: threadSet
+//            ) {
+//                System.out.println(i + ". " + t + " " + t.getState());
+//                i++;
+//            }
             phaser.arriveAndDeregister();
-            int i = 1;
-            Set<Thread> threadSet = Thread.getAllStackTraces().keySet();
-            for (Thread t: threadSet
-                 ) {
-                System.out.println(i + ". " + t + " " + t.getState());
-                i++;
-            }
+            connection.arriveAndDeregister();
+            phaser.forceTermination();
         };
 
         timer.schedule(changeMode, 2, TimeUnit.SECONDS);
