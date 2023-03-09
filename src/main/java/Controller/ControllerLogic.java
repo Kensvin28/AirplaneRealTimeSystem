@@ -7,6 +7,7 @@ import com.rabbitmq.client.ConnectionFactory;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.LinkedList;
 import java.util.Random;
 import java.util.concurrent.*;
 
@@ -23,7 +24,7 @@ public abstract class ControllerLogic implements FlightMode {
     int throttle;
 
     boolean landingGearDown;
-    boolean oxygenMasksDown = false;
+    volatile boolean oxygenMasksDown = false;
     String pressurizerState;
     int tailFlapsAngle;
     int wingFlapsAngle;
@@ -44,13 +45,24 @@ public abstract class ControllerLogic implements FlightMode {
         }
     }
 
-    public void handleOxygenMasks() {
+    synchronized public void handleOxygenMasks() {
         String instruction;
         if (pressure < 8 && !isOxygenMasksDown()) {
             instruction = "drop";
             System.err.println("[CONTROLLER] Dropping oxygen masks");
             transmit(instruction, Key.OXYGEN_MASKS.name);
             setOxygenMasksDown(true);
+        }
+    }
+
+    synchronized public void handleLandingGear() {
+        String instruction;
+        if (!isLandingGearDown()) {
+            if (altitude < 2000 && speed < 400) {
+                instruction = "lower";
+                System.out.println("[CONTROLLER] Instructing landing gear to be lowered");
+                transmit(instruction, Key.LANDING_GEAR.name);
+            }
         }
     }
 
@@ -65,23 +77,13 @@ public abstract class ControllerLogic implements FlightMode {
         else if (pressure > 1) {
             System.err.println("[CONTROLLER] ALERT! PRESSURE LOW");
             instruction = "suck maximum";
+            CompletableFuture.runAsync(this::handleOxygenMasks);
         }
 
         if (!instruction.equals(pressurizerState)) {
                 System.out.println("[CONTROLLER] Telling pressurizer to " + instruction + " air");
         }
         transmit(instruction, Key.PRESSURIZER.name);
-    }
-
-    public void handleLandingGear() {
-        String instruction;
-        if (!isLandingGearDown()) {
-            if (altitude < 2000 && speed < 400) {
-                instruction = "lower";
-                System.out.println("[CONTROLLER] Instructing landing gear to be lowered");
-                transmit(instruction, Key.LANDING_GEAR.name);
-            }
-        }
     }
 
     private void handleDirection() {
@@ -103,6 +105,14 @@ public abstract class ControllerLogic implements FlightMode {
         if (instruction != tailFlapsAngle) {
             System.out.println("[CONTROLLER] Instructing tail flaps to tilt " + instruction + "°");
             transmit(String.valueOf(instruction), Key.TAIL_FLAPS.name);
+        }
+    }
+
+    private void handleWeather() {
+        // evade storm
+        if (weather.equals(Weather.STORMY)) {
+            target = 30 * random.nextInt(0, 12);
+            System.err.println("[CONTROLLER] Bad weather ahead, diverting to " + target + "°");
         }
     }
 
@@ -153,25 +163,21 @@ public abstract class ControllerLogic implements FlightMode {
     }
 
     private void handleMessage(String message, String sender) {
-        if (sender.contains("altitude")) {
+        if (sender.contains("pressure")) {
+            pressure = Double.parseDouble(message);
+            CompletableFuture.runAsync(this::handlePressurizer);
+        }
+        else if (sender.contains("altitude")) {
             altitude = Integer.parseInt(message);
             CompletableFuture.runAsync(this::handleWingFlaps);
             CompletableFuture.runAsync(this::handleLandingGear);
-        } else if (sender.contains("pressure")) {
-            pressure = Double.parseDouble(message);
-            CompletableFuture.runAsync(this::handlePressurizer);
-            CompletableFuture.runAsync(this::handleOxygenMasks);
         } else if (sender.contains("speed")) {
             speed = Integer.parseInt(message);
             CompletableFuture.runAsync(this::handleEngine);
         } else if (sender.contains("weather")) {
             if (weather == null || !weather.equals(Weather.valueOf(message))) {
                 weather = Weather.valueOf(message);
-                // evade storm
-                if (weather.equals(Weather.STORMY)) {
-                    target = 30 * random.nextInt(0, 12);
-                    System.err.println("[CONTROLLER]: Bad weather ahead, diverting to " + target + "°");
-                }
+                CompletableFuture.runAsync(this::handleWeather);
             }
         } else if (sender.contains("direction")) {
             direction = Integer.parseInt(message);
@@ -211,12 +217,20 @@ public abstract class ControllerLogic implements FlightMode {
         try (Connection connection = cf.newConnection();
              Channel channel = connection.createChannel()) {
             channel.exchangeDeclare(Exchange.CONTROLLER_ACTUATOR_EXCHANGE.name, BuiltinExchangeType.TOPIC);
-            channel.basicPublish(Exchange.CONTROLLER_ACTUATOR_EXCHANGE.name, Key.ENGINE.name + ".off", false, null, "off".getBytes());
-            channel.basicPublish(Exchange.CONTROLLER_ACTUATOR_EXCHANGE.name, Key.LANDING_GEAR.name + ".off", false, null, "off".getBytes());
-            channel.basicPublish(Exchange.CONTROLLER_ACTUATOR_EXCHANGE.name, Key.OXYGEN_MASKS.name + ".off", false, null, "off".getBytes());
-            channel.basicPublish(Exchange.CONTROLLER_ACTUATOR_EXCHANGE.name, Key.PRESSURIZER.name + ".off", false, null, "off".getBytes());
-            channel.basicPublish(Exchange.CONTROLLER_ACTUATOR_EXCHANGE.name, Key.TAIL_FLAPS.name + ".off", false, null, "off".getBytes());
-            channel.basicPublish(Exchange.CONTROLLER_ACTUATOR_EXCHANGE.name, Key.WING_FLAPS.name + ".off", false, null, "off".getBytes());
+            LinkedList<String> linkedList = new LinkedList<>();
+            linkedList.add(Key.ENGINE.name + ".off");
+            linkedList.add(Key.LANDING_GEAR.name + ".off");
+            linkedList.add(Key.OXYGEN_MASKS.name + ".off");
+            linkedList.add(Key.PRESSURIZER.name + ".off");
+            linkedList.add(Key.TAIL_FLAPS.name + ".off");
+            linkedList.add(Key.WING_FLAPS.name + ".off");
+            linkedList.parallelStream().forEach(key -> {
+                try {
+                    channel.basicPublish(Exchange.CONTROLLER_ACTUATOR_EXCHANGE.name, key, false, null, "off".getBytes());
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            });
         } catch (IOException | TimeoutException e) {
             throw new RuntimeException(e);
         }

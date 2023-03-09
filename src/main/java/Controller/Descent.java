@@ -36,18 +36,19 @@ public class Descent extends ControllerLogic implements Runnable {
         receive();
     }
 
-
     // speed to 300
     public void handleEngine() {
-        String instruction = "";
-        if (speed > 500) instruction = "10";
-        else if (speed > 400) instruction = "25";
-        else if (speed > 300) instruction = "50";
-        else if (speed > 200) instruction = "75";
-        else if (speed >= 100) instruction = "100";
+        int instruction = 0;
+        if (speed > 500) instruction = 10;
+        else if (speed > 400) instruction = 25;
+        else if (speed > 300) instruction = 50;
+        else if (speed > 200) instruction = 75;
+        else if (speed >= 100) instruction = 100;
 
-        System.out.println("[CONTROLLER] Telling engine to change throttle to " + instruction + "%");
-        transmit(instruction, Key.ENGINE.name);
+        if(instruction != throttle) {
+            System.out.println("[CONTROLLER] Telling engine to change throttle to " + instruction + "%");
+        }
+        transmit(String.valueOf(instruction), Key.ENGINE.name);
     }
 
     // wing flap to -60

@@ -41,23 +41,25 @@ public class Approach extends ControllerLogic implements Runnable {
 
     // speed to 250
     public void handleEngine() {
-        String instruction = "";
-        if (speed > 400) instruction = "10";
-        else if (speed > 300) instruction = "25";
-        else if (speed > 250) instruction = "50";
-        else if (speed > 200) instruction = "75";
-        else if (speed >= 100) instruction = "100";
-        else if (speed == 0) instruction = "0";
+        int instruction = 0;
+        if (speed > 400) instruction = 10;
+        else if (speed > 300) instruction = 25;
+        else if (speed > 250) instruction = 50;
+        else if (speed > 200) instruction = 75;
+        else if (speed >= 100) instruction = 100;
+        else if (speed == 0) instruction = 0;
 
         // touch down braking
-        if (altitude == 0) instruction = "-100";
+        if (altitude == 0) instruction = -100;
         // stop plane
-        if (speed == 0) instruction = "0";
+        if (speed == 0) instruction = 0;
         // end last phase
         if (speed == 0 && throttle == 0) phaser.arriveAndDeregister();
 
-        System.out.println("[CONTROLLER] Telling engine to change throttle to " + instruction + "%");
-        transmit(instruction, Key.ENGINE.name);
+        if(instruction != throttle) {
+            System.out.println("[CONTROLLER] Telling engine to change throttle to " + instruction + "%");
+        }
+        transmit(String.valueOf(instruction), Key.ENGINE.name);
     }
 
     // wing flaps to -30

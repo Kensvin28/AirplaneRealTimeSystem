@@ -9,7 +9,7 @@ import java.util.concurrent.*;
 
 public class Simulation {
     public static void main(String[] args) {
-        final int PERIOD = 100;
+        final int PERIOD = 500;
         Random random = new Random();
 
         // initialise phaser for cruising, descending, and approach phases
@@ -49,13 +49,6 @@ public class Simulation {
         WingFlapsLogic wingFlapsLogic = new WingFlapsLogic(wingFlaps, altimeter);
 
         System.out.println("----Simulation started----");
-        // start sensors
-        timer.scheduleAtFixedRate(altimeterLogic, 0, PERIOD, TimeUnit.MILLISECONDS);
-        timer.scheduleAtFixedRate(speedometerLogic, 0, PERIOD, TimeUnit.MILLISECONDS);
-        timer.scheduleAtFixedRate(barometerLogic, 0, PERIOD, TimeUnit.MILLISECONDS);
-        timer.scheduleAtFixedRate(weatherSystemLogic, 0, PERIOD, TimeUnit.MILLISECONDS);
-        timer.scheduleAtFixedRate(wayFinderLogic, 0, PERIOD, TimeUnit.MILLISECONDS);
-
         // start actuators
         timer.scheduleAtFixedRate(engineLogic, 0, PERIOD, TimeUnit.MILLISECONDS);
         timer.scheduleAtFixedRate(landingGearLogic, 0, PERIOD, TimeUnit.MILLISECONDS);
@@ -69,9 +62,23 @@ public class Simulation {
         Cruising cruising = new Cruising(timer, phaser);
         ex.submit(cruising);
 
+        // start sensors
+        timer.scheduleAtFixedRate(altimeterLogic, 0, PERIOD, TimeUnit.MILLISECONDS);
+        timer.scheduleAtFixedRate(speedometerLogic, 0, PERIOD, TimeUnit.MILLISECONDS);
+        timer.scheduleAtFixedRate(barometerLogic, 0, PERIOD, TimeUnit.MILLISECONDS);
+        timer.scheduleAtFixedRate(weatherSystemLogic, 0, PERIOD, TimeUnit.MILLISECONDS);
+        timer.scheduleAtFixedRate(wayFinderLogic, 0, PERIOD, TimeUnit.MILLISECONDS);
+
+        // sudden loss of pressure simulation
+        Runnable pressureLoss = () -> {
+            barometer.setPressure(-5);
+        };
+        timer.schedule(pressureLoss, random.nextInt(10,20), TimeUnit.SECONDS);
+
         Runnable changeMode = () -> {
             // change to descending mode
             while(true) {
+                System.out.println(weatherSystem.getWeather());
                 if (weatherSystem.getWeather().equals("SUNNY")) {
                     weatherSystemLogic.stopWeatherChange();
                     cruising.setLanding();
@@ -104,10 +111,6 @@ public class Simulation {
 
             System.out.println("----Simulation finished----");
         };
-        timer.schedule(changeMode, 2, TimeUnit.SECONDS);
-
-        // sudden loss of pressure simulation
-        Runnable pressureLoss = () -> barometer.setPressure(-5);
-        timer.schedule(pressureLoss, random.nextInt(10), TimeUnit.MILLISECONDS);
+        timer.schedule(changeMode, random.nextInt(20,30), TimeUnit.SECONDS);
     }
 }
