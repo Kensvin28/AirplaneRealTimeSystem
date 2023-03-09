@@ -3,6 +3,7 @@ package Consumer;
 import Controller.Exchange;
 import Controller.Key;
 import Producer.Altimeter;
+import Producer.WayFinder;
 import com.rabbitmq.client.BuiltinExchangeType;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
@@ -12,61 +13,54 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Phaser;
 import java.util.concurrent.TimeoutException;
 
 public class TailFlapsLogic implements Runnable {
     ConnectionFactory cf = new ConnectionFactory();
-    Phaser connection;
     Connection con;
     Channel chan;
-    Channel chan2;
     TailFlaps tailFlaps;
-    Altimeter altimeter;
+    WayFinder wayFinder;
     final int DELTA = 30;
 
-    public TailFlapsLogic(TailFlaps tailFlaps, Altimeter altimeter, Phaser connection) {
+    public TailFlapsLogic(TailFlaps tailFlaps, WayFinder wayFinder) {
         this.tailFlaps = tailFlaps;
-        this.altimeter = altimeter;
-        this.connection = connection;
+        this.wayFinder = wayFinder;
         try {
             con = cf.newConnection();
             chan = con.createChannel();
-            chan2 = con.createChannel();
         } catch (IOException | TimeoutException e) {
             throw new RuntimeException(e);
         }
     }
 
     public void moveFlaps(int newAngle) {
-        if (tailFlaps.getAngle() < newAngle) {
-            tailFlaps.setAngle(DELTA);
-        } else if (tailFlaps.getAngle() > newAngle) {
-            tailFlaps.setAngle(-DELTA);
-        }
-        // TODO: change speed and altitude
+        tailFlaps.setAngle(newAngle);
         System.out.println("[TAIL FLAPS] Flap angle at " + tailFlaps.getAngle() + "°");
-        changeAltitude(tailFlaps.getAngle());
+        transmit(newAngle);
+        changeDirection(newAngle);
     }
 
-    private void changeAltitude(int angle) {
-        int altitudeChange = 0;
-        switch (angle) {
-            case 60 -> altitudeChange = 2000;
-            case 30 -> altitudeChange = 500;
-            case 0 -> altitudeChange = 0;
-            case -30 -> altitudeChange = -500;
-            case -60 -> altitudeChange = -2000;
+    private void changeDirection(int directionChange) {
+        System.out.println("[TAIL FLAPS] Change direction by " + directionChange);
+        wayFinder.setDirection(directionChange);
+    }
+
+    public void transmit(int tailFlapsAngle) {
+        try (Connection con = cf.newConnection();
+             Channel channel = con.createChannel()) {
+            channel.exchangeDeclare(Exchange.ACTUATOR_CONTROLLER_EXCHANGE.name, BuiltinExchangeType.TOPIC);
+            channel.basicPublish(Exchange.ACTUATOR_CONTROLLER_EXCHANGE.name, Key.TAIL_FLAPS.name, false, null, String.valueOf(tailFlapsAngle).getBytes());
+        } catch (IOException | TimeoutException e) {
+            throw new RuntimeException(e);
         }
-        System.out.println("[TAIL FLAPS] Change altitude by " + altitudeChange);
-        altimeter.setAltitude(altitudeChange);
     }
 
     public String receive() {
         try {
             chan.exchangeDeclare(Exchange.CONTROLLER_ACTUATOR_EXCHANGE.name, BuiltinExchangeType.TOPIC);
             String qName = chan.queueDeclare().getQueue();
-            chan.basicQos(1);
+            chan.basicQos(2);
             chan.queueBind(qName, Exchange.CONTROLLER_ACTUATOR_EXCHANGE.name, Key.TAIL_FLAPS.name);
             final CompletableFuture<String> messageResponse = new CompletableFuture<>();
             chan.basicConsume(qName, (x, msg) -> {
@@ -78,6 +72,8 @@ public class TailFlapsLogic implements Runnable {
                         if(con.isOpen()) {
                             con.close();
                         }
+                        System.out.println("Tail Flaps");
+
                     } catch (TimeoutException e) {
                         throw new RuntimeException(e);
                     }

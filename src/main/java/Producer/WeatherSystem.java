@@ -9,9 +9,9 @@ public class WeatherSystem {
         return weather;
     }
 
-    public void setWeather(Weather newWeather){
-//        weather = newWeather;
-//        System.out.println("[WEATHER] New Weather: " + weather);
+    public void setWeather(String newWeather){
+        weather = newWeather;
+        System.out.println("[WEATHER] New Weather: " + weather);
     }
 
     public WeatherSystem() {

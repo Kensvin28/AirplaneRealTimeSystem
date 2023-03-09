@@ -2,22 +2,45 @@ package Controller;
 
 import Consumer.*;
 
-import java.util.concurrent.Phaser;
+import java.io.IOException;
+import java.util.concurrent.*;
 
 public class Cruising extends ControllerLogic implements Runnable {
+    Phaser phaser;
 
-
-    public Cruising(Engine engine, LandingGear landingGear, OxygenMasks oxygenMasks, Pressurizer pressurizer, WingFlaps wingFlaps, Phaser phaser) {
-        super(engine, landingGear, oxygenMasks, pressurizer, wingFlaps, phaser);
+    public Cruising(ScheduledExecutorService timer, Phaser phaser) {
+        super(phaser);
+        System.out.println("[CONTROLLER] Target Direction: "+target);
+        landingGearDown = false;
+        this.phaser = phaser;
         phaser.register();
+
+        // refresh target waypoint
+        timer.scheduleAtFixedRate(() -> target = 30*random.nextInt(0,  12), 0, 10, TimeUnit.SECONDS);
     }
 
     public void run() {
         receive();
     }
 
-    public void handleTailFlaps() {
+    public void setLanding() {
+        try {
+            System.err.println("Plane is going to land");
+            if(chan.isOpen()) {
+                chan.close();
+            }
+            if(chan2.isOpen()){
+                chan2.close();
+            }
+            if(con.isOpen()) {
+                con.close();
+            }
+            phaser.arriveAndDeregister();
+        } catch (IOException | TimeoutException e) {
+            throw new RuntimeException(e);
+        }
     }
+
 
     // Speed to 525
     public void handleEngine() {

@@ -10,26 +10,25 @@ import com.rabbitmq.client.ConnectionFactory;
 import java.io.IOException;
 import java.util.concurrent.TimeoutException;
 
-public class SpeedometerLogic implements Runnable {
+public class WayFinderLogic implements Runnable {
     ConnectionFactory cf = new ConnectionFactory();
-    // knots
-    Speedometer speedometer;
+    WayFinder wayFinder;
 
-    public SpeedometerLogic(Speedometer speedometer){
-        this.speedometer = speedometer;
+    public WayFinderLogic(WayFinder wayFinder) {
+        this.wayFinder = wayFinder;
     }
 
     @Override
     public void run() {
-        transmit(speedometer.getSpeed());
+        transmit(wayFinder.getDirection());
     }
 
-    public void transmit(int speed) {
+    public void transmit(int direction) {
         try (Connection connection = cf.newConnection();
              Channel channel = connection.createChannel()) {
             channel.exchangeDeclare(Exchange.SENSOR_CONTROLLER_EXCHANGE.name, BuiltinExchangeType.TOPIC);
-            channel.basicPublish(Exchange.SENSOR_CONTROLLER_EXCHANGE.name, Key.SPEED.name, false, null, String.valueOf(speed).getBytes());
-            System.out.println("[SPEEDOMETER] Speed: " + speed);
+            channel.basicPublish(Exchange.SENSOR_CONTROLLER_EXCHANGE.name, Key.DIRECTION.name, false, null, String.valueOf(direction).getBytes());
+            System.out.println("[WAYFINDER] Current Direction: " + wayFinder.getDirection());
         } catch (IOException | TimeoutException e) {
             throw new RuntimeException(e);
         }

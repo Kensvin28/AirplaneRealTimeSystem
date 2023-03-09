@@ -13,7 +13,6 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Phaser;
 import java.util.concurrent.TimeoutException;
 
 public class EngineLogic implements Runnable {
@@ -21,17 +20,13 @@ public class EngineLogic implements Runnable {
     Speedometer speedometer;
     Connection con;
     Channel chan;
-    Phaser connection;
 
-//    Altimeter altimeter;
     Engine engine;
     final int DELTA = 25;
 
-    public EngineLogic(Engine engine, Speedometer speedometer, Altimeter altimeter, Phaser connection) {
+    public EngineLogic(Engine engine, Speedometer speedometer, Altimeter altimeter) {
         this.engine = engine;
         this.speedometer = speedometer;
-        this.connection = connection;
-//        this.altimeter = altimeter;
         try {
             con = cf.newConnection();
             chan = con.createChannel();
@@ -41,30 +36,21 @@ public class EngineLogic implements Runnable {
     }
 
     public void changeThrottle(int newThrottle) {
+        // set max braking throttle to -100%
         if(engine.getThrottle()+newThrottle<-100){
             engine.setThrottle(-100);
         }
+        // increase throttle
         else if (engine.getThrottle() < newThrottle) {
             engine.setThrottle(DELTA);
+        // decrease throttle
         } else if (engine.getThrottle() > newThrottle) {
             engine.setThrottle(-DELTA);
         }
 
-        System.out.println("[ENGINE] Engine throttle at " + engine.getThrottle() + "%");
+        transmit(engine.getThrottle());
         changeSpeed(engine.getThrottle());
-//        changeAltitude(engine.getThrottle());
     }
-
-//    private void changeAltitude(int throttle) {
-//        int altitudeChange = 0;
-//        if (throttle >= 90) altitudeChange = 1000;
-//        else if (throttle >= 75) altitudeChange = 500;
-//        else if (throttle >= 50) altitudeChange = 0;
-//        else if (throttle >= 25) altitudeChange = -500;
-//        else if (throttle > 0) altitudeChange = -1000;
-//        System.out.println("[ENGINE] Change altitude by " + altitudeChange);
-//        altimeter.setAltitude(altitudeChange);
-//    }
 
     private void changeSpeed(int throttle) {
         int acceleration = 0;
@@ -79,22 +65,33 @@ public class EngineLogic implements Runnable {
         speedometer.setSpeed(acceleration);
     }
 
+    public void transmit(int throttle) {
+        try (Connection connection = cf.newConnection();
+             Channel channel = connection.createChannel()) {
+            channel.exchangeDeclare(Exchange.ACTUATOR_CONTROLLER_EXCHANGE.name, BuiltinExchangeType.TOPIC);
+            channel.basicPublish(Exchange.ACTUATOR_CONTROLLER_EXCHANGE.name, Key.ENGINE.name, false, null, String.valueOf(throttle).getBytes());
+        } catch (IOException | TimeoutException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     public String receive() {
         try {
             chan.exchangeDeclare(Exchange.CONTROLLER_ACTUATOR_EXCHANGE.name, BuiltinExchangeType.TOPIC);
             String qName = chan.queueDeclare().getQueue();
-            chan.basicQos(1);
+            chan.basicQos(2);
             chan.queueBind(qName, Exchange.CONTROLLER_ACTUATOR_EXCHANGE.name, Key.ENGINE.name);
             final CompletableFuture<String> messageResponse = new CompletableFuture<>();
             chan.basicConsume(qName, (x, msg) -> {
                 if (msg.getEnvelope().getRoutingKey().contains("off")) {
                     try {
-                        if(chan.isOpen()) {
+                        if (chan.isOpen()) {
                             chan.close();
                         }
-                        if(con.isOpen()) {
+                        if (con.isOpen()) {
                             con.close();
                         }
+                        System.out.println("Engine");
                     } catch (TimeoutException e) {
                         throw new RuntimeException(e);
                     }

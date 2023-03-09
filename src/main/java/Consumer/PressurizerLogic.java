@@ -17,22 +17,18 @@ import java.util.concurrent.TimeoutException;
 
 public class PressurizerLogic implements Runnable {
     ConnectionFactory cf = new ConnectionFactory();
-    Phaser connection;
     Connection con;
     Channel chan;
-    Channel chan2;
     Barometer barometer;
     Pressurizer pressurizer;
     final int DELTA = 1;
 
-    public PressurizerLogic(Pressurizer pressurizer, Barometer barometer, Phaser connection) {
+    public PressurizerLogic(Pressurizer pressurizer, Barometer barometer) {
         this.pressurizer = pressurizer;
         this.barometer = barometer;
-        this.connection = connection;
         try {
             con = cf.newConnection();
             chan = con.createChannel();
-            chan2 = con.createChannel();
         } catch (IOException | TimeoutException e) {
             throw new RuntimeException(e);
         }
@@ -41,11 +37,12 @@ public class PressurizerLogic implements Runnable {
     public void pressurize(String instruction) {
         if (instruction.equals("suck")) {
             pressurizer.setActive(true);
-            System.out.println("[PRESSURIZER] Pressurising cabin...");
+            System.out.println("[PRESSURIZER] Pressurizing cabin...");
         } else if (instruction.equals("release")) {
             pressurizer.setActive(false);
-            System.out.println("[PRESSURIZER] Depressurising cabin...");
+            System.out.println("[PRESSURIZER] Depressurizing cabin...");
         }
+        transmit(pressurizer.isActive());
         changePressure(pressurizer.isActive());
     }
 
@@ -60,11 +57,21 @@ public class PressurizerLogic implements Runnable {
         barometer.setPressure(pressureChange);
     }
 
+    public void transmit(boolean pressurizerState) {
+        try (Connection con = cf.newConnection();
+             Channel channel = con.createChannel()) {
+            channel.exchangeDeclare(Exchange.ACTUATOR_CONTROLLER_EXCHANGE.name, BuiltinExchangeType.TOPIC);
+            channel.basicPublish(Exchange.ACTUATOR_CONTROLLER_EXCHANGE.name, Key.PRESSURIZER.name, false, null, String.valueOf(pressurizerState).getBytes());
+        } catch (IOException | TimeoutException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     public String receive(){
         try {
             chan.exchangeDeclare(Exchange.CONTROLLER_ACTUATOR_EXCHANGE.name, BuiltinExchangeType.TOPIC);
             String qName = chan.queueDeclare().getQueue();
-            chan.basicQos(1);
+            chan.basicQos(2);
             chan.queueBind(qName, Exchange.CONTROLLER_ACTUATOR_EXCHANGE.name, Key.PRESSURIZER.name);
             final CompletableFuture<String> messageResponse = new CompletableFuture<>();
             chan.basicConsume(qName, (x, msg) -> {
@@ -76,6 +83,7 @@ public class PressurizerLogic implements Runnable {
                         if(con.isOpen()) {
                             con.close();
                         }
+                        System.out.println("Pressurizer");
                     } catch (TimeoutException e) {
                         throw new RuntimeException(e);
                     }

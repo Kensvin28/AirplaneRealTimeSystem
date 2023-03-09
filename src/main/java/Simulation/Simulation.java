@@ -5,7 +5,6 @@ import Producer.*;
 import Controller.*;
 
 import java.util.Random;
-import java.util.Set;
 import java.util.concurrent.*;
 
 public class Simulation {
@@ -15,15 +14,14 @@ public class Simulation {
 
         // initialise phaser for cruising, descending, and approach phases
         Phaser phaser = new Phaser();
-        Phaser connection = new Phaser();
         phaser.register();
-        connection.register();
 
         // initialise sensors
         Altimeter altimeter = new Altimeter();
         Barometer barometer = new Barometer(altimeter);
         Speedometer speedometer = new Speedometer();
         WeatherSystem weatherSystem = new WeatherSystem();
+        WayFinder wayFinder = new WayFinder();
 
         // initialise actuators
         Engine engine = new Engine(speedometer, altimeter);
@@ -39,19 +37,24 @@ public class Simulation {
         SpeedometerLogic speedometerLogic = new SpeedometerLogic(speedometer);
         BarometerLogic barometerLogic = new BarometerLogic(barometer, altimeter);
         WeatherSystemLogic weatherSystemLogic = new WeatherSystemLogic(weatherSystem);
+        WayFinderLogic wayFinderLogic = new WayFinderLogic(wayFinder);
 
-        EngineLogic engineLogic = new EngineLogic(engine, speedometer, altimeter, connection);
-        LandingGearLogic landingGearLogic = new LandingGearLogic(landingGear, connection);
-        OxygenMasksLogic oxygenMasksLogic = new OxygenMasksLogic(oxygenMasks, connection);
-        PressurizerLogic pressurizerLogic = new PressurizerLogic(pressurizer, barometer, connection);
-        TailFlapsLogic tailFlapsLogic = new TailFlapsLogic(tailFlaps, altimeter, connection);
-        WingFlapsLogic wingFlapsLogic = new WingFlapsLogic(wingFlaps, altimeter, connection);
+        EngineLogic engineLogic = new EngineLogic(engine, speedometer, altimeter);
+        LandingGearLogic landingGearLogic = new LandingGearLogic(landingGear);
+        OxygenMasksLogic oxygenMasksLogic = new OxygenMasksLogic(oxygenMasks);
+        PressurizerLogic pressurizerLogic = new PressurizerLogic(pressurizer, barometer);
+        TailFlapsLogic tailFlapsLogic = new TailFlapsLogic(tailFlaps, wayFinder);
+        WingFlapsLogic wingFlapsLogic = new WingFlapsLogic(wingFlaps, altimeter);
 
+        System.out.println("----Simulation started----");
+        // start sensors
         timer.scheduleAtFixedRate(altimeterLogic, 0, PERIOD, TimeUnit.MILLISECONDS);
         timer.scheduleAtFixedRate(speedometerLogic, 0, PERIOD, TimeUnit.MILLISECONDS);
         timer.scheduleAtFixedRate(barometerLogic, 0, PERIOD, TimeUnit.MILLISECONDS);
         timer.scheduleAtFixedRate(weatherSystemLogic, 0, 10, TimeUnit.SECONDS);
+        timer.scheduleAtFixedRate(wayFinderLogic, 0, PERIOD, TimeUnit.MILLISECONDS);
 
+        // start actuators
         timer.scheduleAtFixedRate(engineLogic, 0, PERIOD, TimeUnit.MILLISECONDS);
         timer.scheduleAtFixedRate(landingGearLogic, 0, PERIOD, TimeUnit.MILLISECONDS);
         timer.scheduleAtFixedRate(oxygenMasksLogic, 0, PERIOD, TimeUnit.MILLISECONDS);
@@ -59,55 +62,37 @@ public class Simulation {
         timer.scheduleAtFixedRate(tailFlapsLogic, 0, PERIOD, TimeUnit.MILLISECONDS);
         timer.scheduleAtFixedRate(wingFlapsLogic, 0, PERIOD, TimeUnit.MILLISECONDS);
 
-//        timer.scheduleAtFixedRate(altimeterLogic, 0, 500, TimeUnit.MILLISECONDS);
-//        timer.scheduleAtFixedRate(speedometerLogic, 0, 500, TimeUnit.MILLISECONDS);
-//        timer.scheduleAtFixedRate(barometerLogic, 0, 500, TimeUnit.MILLISECONDS);
-//        timer.scheduleAtFixedRate(weatherSystemLogic, 0, 10, TimeUnit.SECONDS);
-//
-//        timer.scheduleAtFixedRate(engineLogic, 0, 500, TimeUnit.MILLISECONDS);
-//        timer.scheduleAtFixedRate(landingGearLogic, 0, 500, TimeUnit.MILLISECONDS);
-//        timer.scheduleAtFixedRate(oxygenMasksLogic, 0, 500, TimeUnit.MILLISECONDS);
-//        timer.scheduleAtFixedRate(pressurizerLogic, 0, 500, TimeUnit.MILLISECONDS);
-//        timer.scheduleAtFixedRate(tailFlapsLogic, 0, 500, TimeUnit.MILLISECONDS);
-//        timer.scheduleAtFixedRate(wingFlapsLogic, 0, 500, TimeUnit.MILLISECONDS);
-
+        // start controller
         ExecutorService ex = Executors.newFixedThreadPool(8);
-        Cruising cruising = new Cruising(engine, landingGear, oxygenMasks, pressurizer, wingFlaps, phaser);
+        Cruising cruising = new Cruising(timer, phaser);
         ex.submit(cruising);
 
         Runnable changeMode = () -> {
             // change to descending mode
-            cruising.setLanding(true);
+            cruising.setLanding();
             ex.shutdownNow();
             phaser.arriveAndAwaitAdvance();
 
             // change to descending mode
             ExecutorService ex2 = Executors.newCachedThreadPool();
-            Descent descent = new Descent(engine, landingGear, oxygenMasks, pressurizer, wingFlaps, phaser);
+            Descent descent = new Descent(phaser);
             ex2.submit(descent);
             phaser.arriveAndAwaitAdvance();
 
             // change to approaching mode
-            descent.setApproaching(true);
+            descent.setApproaching();
             ex2.shutdownNow();
             ExecutorService ex3 = Executors.newCachedThreadPool();
-            Approach approach = new Approach(engine, landingGear, oxygenMasks, pressurizer, wingFlaps, phaser);
+            Approach approach = new Approach(phaser);
             ex3.submit(approach);
             phaser.arriveAndAwaitAdvance();
 
-            approach.setEnd(true);
-            ex3.shutdownNow();
+            approach.setEnd();
+            ex3.shutdown();
             timer.shutdownNow();
-//            int i = 1;
-//            Set<Thread> threadSet = Thread.getAllStackTraces().keySet();
-//            for (Thread t: threadSet
-//            ) {
-//                System.out.println(i + ". " + t + " " + t.getState());
-//                i++;
-//            }
+
             phaser.arriveAndDeregister();
-            connection.arriveAndDeregister();
-            phaser.forceTermination();
+            System.out.println("----Simulation finished----");
         };
 
         timer.schedule(changeMode, 2, TimeUnit.SECONDS);
