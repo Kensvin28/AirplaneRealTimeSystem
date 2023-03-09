@@ -1,16 +1,14 @@
 package Consumer;
 
-import Producer.Barometer;
-
 public class Pressurizer {
-    boolean active = false;
+    String state;
 
-    public boolean isActive() {
-        return active;
+    public String getState() {
+        return state;
     }
 
-    public void setActive(boolean state) {
-        active = state;
+    public void setState(String state) {
+        this.state = state;
     }
 
     public Pressurizer() {

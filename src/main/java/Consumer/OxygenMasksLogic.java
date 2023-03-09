@@ -11,7 +11,6 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Phaser;
 import java.util.concurrent.TimeoutException;
 
 public class OxygenMasksLogic implements Runnable {
@@ -41,7 +40,7 @@ public class OxygenMasksLogic implements Runnable {
         try {
             chan.exchangeDeclare(Exchange.CONTROLLER_ACTUATOR_EXCHANGE.name, BuiltinExchangeType.TOPIC);
             String qName = chan.queueDeclare().getQueue();
-            chan.basicQos(2);
+            chan.basicQos(3);
             chan.queueBind(qName, Exchange.CONTROLLER_ACTUATOR_EXCHANGE.name, Key.OXYGEN_MASKS.name);
             final CompletableFuture<String> messageResponse = new CompletableFuture<>();
             chan.basicConsume(qName, (x, msg) -> {
@@ -54,6 +53,7 @@ public class OxygenMasksLogic implements Runnable {
                         if (con.isOpen()) {
                             con.close();
                         }
+//                        System.out.println("oxygen masks closed");
                     } catch (TimeoutException e) {
                         throw new RuntimeException(e);
                     }

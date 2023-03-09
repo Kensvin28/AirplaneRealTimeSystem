@@ -20,7 +20,6 @@ public class Speedometer {
                 speed = MAX_SPEED;
             } else {
                 speed += speedChange;
-                System.out.println("[SPEEDOMETER] New Speed: " + speed);
             }
         }
     }

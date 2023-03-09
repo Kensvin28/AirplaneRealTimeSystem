@@ -24,7 +24,7 @@ public abstract class ControllerLogic implements FlightMode {
 
     boolean landingGearDown;
     boolean oxygenMasksDown = false;
-    boolean pressurizerState;
+    String pressurizerState;
     int tailFlapsAngle;
     int wingFlapsAngle;
 
@@ -55,26 +55,22 @@ public abstract class ControllerLogic implements FlightMode {
     }
 
     public void handlePressurizer() {
-        boolean instruction = false;
+        String instruction = "";
 
         // release air
-        if (pressure > 12) instruction = false;
+        if (pressure > 12) instruction = "release";
         else if (pressure > 10) return;
         // suck air
-        else if (pressure > 8) instruction = true;
+        else if (pressure > 8) instruction = "suck";
         else if (pressure > 1) {
             System.err.println("[CONTROLLER] ALERT! PRESSURE LOW");
-            instruction = true;
+            instruction = "suck maximum";
         }
 
-        if (instruction != pressurizerState) {
-            if (instruction) {
-                System.out.println("[CONTROLLER] Telling pressurizer to suck air");
-            } else {
-                System.out.println("[CONTROLLER] Telling pressurizer to release air");
-            }
+        if (!instruction.equals(pressurizerState)) {
+                System.out.println("[CONTROLLER] Telling pressurizer to " + instruction + " air");
         }
-        transmit(String.valueOf(instruction), Key.PRESSURIZER.name);
+        transmit(instruction, Key.PRESSURIZER.name);
     }
 
     public void handleLandingGear() {
@@ -189,7 +185,7 @@ public abstract class ControllerLogic implements FlightMode {
             throttle = Integer.parseInt(message);
             System.out.println("[CONTROLLER] Engine throttle at " + throttle + "%");
         } else if (sender.contains("pressurizer")) {
-            pressurizerState = Boolean.parseBoolean(message);
+            pressurizerState = message;
             System.out.println("[CONTROLLER] Pressurizing: " + pressurizerState);
         } else if (sender.contains("tailFlaps")) {
             tailFlapsAngle = Integer.parseInt(message);

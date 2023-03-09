@@ -2,7 +2,6 @@ package Consumer;
 
 import Controller.Exchange;
 import Controller.Key;
-import Producer.Altimeter;
 import Producer.Speedometer;
 import com.rabbitmq.client.BuiltinExchangeType;
 import com.rabbitmq.client.Channel;
@@ -25,7 +24,7 @@ public class EngineLogic implements Runnable {
     // throttle rate of change
     final int DELTA = 25;
 
-    public EngineLogic(Engine engine, Speedometer speedometer, Altimeter altimeter) {
+    public EngineLogic(Engine engine, Speedometer speedometer) {
         this.engine = engine;
         this.speedometer = speedometer;
         try {
@@ -80,7 +79,7 @@ public class EngineLogic implements Runnable {
         try {
             chan.exchangeDeclare(Exchange.CONTROLLER_ACTUATOR_EXCHANGE.name, BuiltinExchangeType.TOPIC);
             String qName = chan.queueDeclare().getQueue();
-            chan.basicQos(2);
+            chan.basicQos(3);
             chan.queueBind(qName, Exchange.CONTROLLER_ACTUATOR_EXCHANGE.name, Key.ENGINE.name);
             final CompletableFuture<String> messageResponse = new CompletableFuture<>();
             chan.basicConsume(qName, (x, msg) -> {
@@ -93,6 +92,7 @@ public class EngineLogic implements Runnable {
                         if (con.isOpen()) {
                             con.close();
                         }
+//                        System.out.println("engine closed");
                     } catch (TimeoutException e) {
                         throw new RuntimeException(e);
                     }

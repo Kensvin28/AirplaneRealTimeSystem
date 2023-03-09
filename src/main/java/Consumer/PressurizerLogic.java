@@ -34,21 +34,30 @@ public class PressurizerLogic implements Runnable {
     }
 
     public void pressurize(String instruction) {
-        if (instruction.equals("true")) {
-            pressurizer.setActive(true);
-            System.out.println("[PRESSURIZER] Pressurizing cabin...");
-        } else if (instruction.equals("false")) {
-            pressurizer.setActive(false);
-            System.out.println("[PRESSURIZER] Depressurizing cabin...");
+        switch (instruction) {
+            case "suck" -> {
+                pressurizer.setState("suck");
+                System.out.println("[PRESSURIZER] Pressurizing cabin...");
+            }
+            case "false" -> {
+                pressurizer.setState("release");
+                System.out.println("[PRESSURIZER] Depressurizing cabin...");
+            }
+            case "suck maximum" -> {
+                pressurizer.setState("suck maximum");
+                System.out.println("[PRESSURIZER] Emergency pressurizing cabin...");
+            }
         }
-        transmit(pressurizer.isActive());
-        changePressure(pressurizer.isActive());
+        transmit(pressurizer.getState());
+        changePressure(pressurizer.getState());
     }
 
-    private void changePressure(boolean valve) {
+    private void changePressure(String valve) {
         double pressureChange;
-        if (valve) {
+        if (valve.equals("suck")) {
             pressureChange = DELTA;
+        } else if (valve.equals("suck maximum")) {
+            pressureChange = 2*DELTA;
         } else {
             pressureChange = -DELTA;
         }
@@ -56,11 +65,11 @@ public class PressurizerLogic implements Runnable {
         barometer.setPressure(pressureChange);
     }
 
-    public void transmit(boolean pressurizerState) {
+    public void transmit(String pressurizerState) {
         try (Connection con = cf.newConnection();
              Channel channel = con.createChannel()) {
             channel.exchangeDeclare(Exchange.ACTUATOR_CONTROLLER_EXCHANGE.name, BuiltinExchangeType.TOPIC);
-            channel.basicPublish(Exchange.ACTUATOR_CONTROLLER_EXCHANGE.name, Key.PRESSURIZER.name, false, null, String.valueOf(pressurizerState).getBytes());
+            channel.basicPublish(Exchange.ACTUATOR_CONTROLLER_EXCHANGE.name, Key.PRESSURIZER.name, false, null, pressurizerState.getBytes());
         } catch (IOException | TimeoutException e) {
             throw new RuntimeException(e);
         }
@@ -70,7 +79,7 @@ public class PressurizerLogic implements Runnable {
         try {
             chan.exchangeDeclare(Exchange.CONTROLLER_ACTUATOR_EXCHANGE.name, BuiltinExchangeType.TOPIC);
             String qName = chan.queueDeclare().getQueue();
-            chan.basicQos(2);
+            chan.basicQos(3);
             chan.queueBind(qName, Exchange.CONTROLLER_ACTUATOR_EXCHANGE.name, Key.PRESSURIZER.name);
             final CompletableFuture<String> messageResponse = new CompletableFuture<>();
             chan.basicConsume(qName, (x, msg) -> {
@@ -83,6 +92,8 @@ public class PressurizerLogic implements Runnable {
                         if (con.isOpen()) {
                             con.close();
                         }
+//                        System.out.println("pressurizer closed");
+
                     } catch (TimeoutException e) {
                         throw new RuntimeException(e);
                     }

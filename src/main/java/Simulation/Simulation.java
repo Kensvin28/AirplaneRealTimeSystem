@@ -41,7 +41,7 @@ public class Simulation {
         WeatherSystemLogic weatherSystemLogic = new WeatherSystemLogic(weatherSystem);
         WayFinderLogic wayFinderLogic = new WayFinderLogic(wayFinder);
 
-        EngineLogic engineLogic = new EngineLogic(engine, speedometer, altimeter);
+        EngineLogic engineLogic = new EngineLogic(engine, speedometer);
         LandingGearLogic landingGearLogic = new LandingGearLogic(landingGear);
         OxygenMasksLogic oxygenMasksLogic = new OxygenMasksLogic(oxygenMasks);
         PressurizerLogic pressurizerLogic = new PressurizerLogic(pressurizer, barometer);
@@ -101,14 +101,13 @@ public class Simulation {
             timer.shutdownNow();
 
             phaser.arriveAndDeregister();
+
             System.out.println("----Simulation finished----");
         };
         timer.schedule(changeMode, 2, TimeUnit.SECONDS);
 
         // sudden loss of pressure simulation
-        Runnable pressureLoss = () -> {
-            barometer.setPressure(-5);
-        };
+        Runnable pressureLoss = () -> barometer.setPressure(-5);
         timer.schedule(pressureLoss, random.nextInt(10), TimeUnit.MILLISECONDS);
     }
 }

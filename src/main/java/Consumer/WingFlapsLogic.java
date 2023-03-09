@@ -49,15 +49,14 @@ public class WingFlapsLogic implements Runnable {
         }
 
         transmit(wingFlaps.getAngle());
-        changeAltitude(wingFlaps.getAngle());
+        // No altitude change when touchdown
+        if (altimeter.getAltitude() != 0) {
+            changeAltitude(wingFlaps.getAngle());
+        }
     }
 
     private void changeAltitude(int angle) {
         int altitudeChange = 0;
-        // No altitude change when touchdown
-        if (altimeter.getAltitude() == 0) {
-            return;
-        }
 
         switch (angle) {
             case 60 -> altitudeChange = 1000;
@@ -84,7 +83,7 @@ public class WingFlapsLogic implements Runnable {
         try {
             chan.exchangeDeclare(Exchange.CONTROLLER_ACTUATOR_EXCHANGE.name, BuiltinExchangeType.TOPIC);
             String qName = chan.queueDeclare().getQueue();
-            chan.basicQos(2);
+            chan.basicQos(3);
             chan.queueBind(qName, Exchange.CONTROLLER_ACTUATOR_EXCHANGE.name, Key.WING_FLAPS.name);
             final CompletableFuture<String> messageResponse = new CompletableFuture<>();
             chan.basicConsume(qName, (x, msg) -> {
@@ -97,6 +96,7 @@ public class WingFlapsLogic implements Runnable {
                         if (con.isOpen()) {
                             con.close();
                         }
+//                        System.out.println("wing closed");
                     } catch (TimeoutException e) {
                         throw new RuntimeException(e);
                     }
