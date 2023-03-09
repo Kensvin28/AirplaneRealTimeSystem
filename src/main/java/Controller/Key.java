@@ -5,6 +5,7 @@ public enum Key {
     WEATHER("weather"),
     SPEED("speed"),
     PRESSURE("pressure"),
+    DIRECTION("direction"),
     WING_FLAPS("wingFlaps.#"),
     TAIL_FLAPS("tailFlaps.#"),
     PRESSURIZER("pressurizer.#"),

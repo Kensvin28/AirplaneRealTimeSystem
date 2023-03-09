@@ -4,6 +4,7 @@ import java.util.Random;
 
 public class Altimeter {
     Random rand = new Random();
+    // feet above sea level
     int altitude;
 
     public int getAltitude() {

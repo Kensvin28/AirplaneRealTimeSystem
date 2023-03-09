@@ -5,6 +5,7 @@ import java.util.Random;
 public class Barometer {
     Altimeter altimeter;
     Random rand = new Random();
+    // psi
     double pressure;
 
     public double getPressure() {
