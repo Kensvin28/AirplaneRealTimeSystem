@@ -39,7 +39,7 @@ public class PressurizerLogic implements Runnable {
                 pressurizer.setState("suck");
                 System.out.println("[PRESSURIZER] Pressurizing cabin...");
             }
-            case "false" -> {
+            case "release" -> {
                 pressurizer.setState("release");
                 System.out.println("[PRESSURIZER] Depressurizing cabin...");
             }

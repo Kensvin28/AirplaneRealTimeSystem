@@ -40,7 +40,7 @@ public class Approach extends ControllerLogic implements Runnable {
     }
 
     // speed to 250
-    public void handleEngine() {
+    synchronized public void handleEngine() {
         int instruction = 0;
         if (speed > 400) instruction = 10;
         else if (speed > 300) instruction = 25;
@@ -63,7 +63,7 @@ public class Approach extends ControllerLogic implements Runnable {
     }
 
     // wing flaps to -30
-    public void handleWingFlaps() {
+    synchronized public void handleWingFlaps() {
         int instruction = -30;
         String display = "[CONTROLLER] Telling wing flaps to change its angle to " + instruction + "°";
 

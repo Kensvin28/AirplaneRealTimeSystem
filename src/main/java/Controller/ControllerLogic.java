@@ -24,7 +24,7 @@ public abstract class ControllerLogic implements FlightMode {
     int throttle;
 
     boolean landingGearDown;
-    volatile boolean oxygenMasksDown = false;
+    boolean oxygenMasksDown = false;
     String pressurizerState;
     int tailFlapsAngle;
     int wingFlapsAngle;
@@ -66,7 +66,7 @@ public abstract class ControllerLogic implements FlightMode {
         }
     }
 
-    public void handlePressurizer() {
+    synchronized public void handlePressurizer() {
         String instruction = "";
 
         // release air
@@ -86,7 +86,7 @@ public abstract class ControllerLogic implements FlightMode {
         transmit(instruction, Key.PRESSURIZER.name);
     }
 
-    private void handleDirection() {
+    synchronized private void handleDirection() {
         int instruction;
         int difference = target - direction;
         if (difference < 0)
@@ -108,7 +108,7 @@ public abstract class ControllerLogic implements FlightMode {
         }
     }
 
-    private void handleWeather() {
+    synchronized private void handleWeather() {
         // evade storm
         if (weather.equals(Weather.STORMY)) {
             target = 30 * random.nextInt(0, 12);

@@ -37,7 +37,7 @@ public class Descent extends ControllerLogic implements Runnable {
     }
 
     // speed to 300
-    public void handleEngine() {
+    synchronized public void handleEngine() {
         int instruction = 0;
         if (speed > 500) instruction = 10;
         else if (speed > 400) instruction = 25;
@@ -52,7 +52,7 @@ public class Descent extends ControllerLogic implements Runnable {
     }
 
     // wing flap to -60
-    public void handleWingFlaps() {
+    synchronized public void handleWingFlaps() {
         int instruction = -60;
         if (instruction != wingFlapsAngle) {
             System.out.println("[CONTROLLER] Telling wing flaps to change its angle to " + instruction + "°");

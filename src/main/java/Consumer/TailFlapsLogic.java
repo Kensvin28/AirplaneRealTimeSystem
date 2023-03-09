@@ -40,7 +40,7 @@ public class TailFlapsLogic implements Runnable {
     }
 
     private void changeDirection(int directionChange) {
-        System.out.println("[TAIL FLAPS] Change direction by " + directionChange);
+        System.out.println("[TAIL FLAPS] Change direction by " + directionChange + "°");
         wayFinder.setDirection(directionChange);
     }
 

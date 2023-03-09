@@ -49,7 +49,7 @@ public class Cruising extends ControllerLogic implements Runnable {
 
 
     // Speed to 525
-    public void handleEngine() {
+    synchronized public void handleEngine() {
         int instruction = 0;
         if (speed > 550) instruction = 25;
         else if (speed > 525) instruction = 50;
@@ -62,7 +62,7 @@ public class Cruising extends ControllerLogic implements Runnable {
     }
 
     // Angle to 0
-    public void handleWingFlaps() {
+    synchronized public void handleWingFlaps() {
         int instruction = 0;
         if (altitude > 49_000 || pressure < 8) instruction = -60;
         else if (altitude > 45_000 || weather.equals(Weather.STORMY)) instruction = -30;
