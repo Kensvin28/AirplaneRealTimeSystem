@@ -13,10 +13,10 @@ public class Barometer {
     }
 
     public void setPressure(double pressureChange) {
-        // set lowest pressure limit to 3
-        if(pressure < 3) {
+        // set the lowest pressure limit to 3
+        if (pressure < 3) {
             pressure = 3;
-        } else{
+        } else {
             pressure += pressureChange;
             System.out.println("[BAROMETER] New Pressure: " + pressure);
         }
@@ -25,7 +25,5 @@ public class Barometer {
     public Barometer(Altimeter altimeter) {
         this.altimeter = altimeter;
         pressure = rand.nextInt(10, 13);
-//        ScheduledExecutorService timer = Executors.newScheduledThreadPool(1);
-//        timer.scheduleAtFixedRate(new BarometerLogic(), 0, 1, TimeUnit.SECONDS);
     }
 }

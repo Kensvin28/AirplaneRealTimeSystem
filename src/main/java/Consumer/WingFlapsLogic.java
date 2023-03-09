@@ -12,7 +12,6 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Phaser;
 import java.util.concurrent.TimeoutException;
 
 public class WingFlapsLogic implements Runnable {
@@ -21,9 +20,10 @@ public class WingFlapsLogic implements Runnable {
     Channel chan;
     WingFlaps wingFlaps;
     Altimeter altimeter;
+    // wing flap angle rate of change
     final int DELTA = 30;
 
-    public WingFlapsLogic(WingFlaps wingFlaps, Altimeter altimeter){
+    public WingFlapsLogic(WingFlaps wingFlaps, Altimeter altimeter) {
         this.wingFlaps = wingFlaps;
         this.altimeter = altimeter;
         try {
@@ -35,11 +35,13 @@ public class WingFlapsLogic implements Runnable {
     }
 
     public void moveFlaps(int newAngle) {
-        if(newAngle == -90) {
+        // brake
+        if (newAngle == -90) {
             wingFlaps.setAngle(-90);
             System.out.println("[WING FLAPS] Braking...");
         }
 
+        // change angle
         if (wingFlaps.getAngle() < newAngle) {
             wingFlaps.changeAngle(DELTA);
         } else if (wingFlaps.getAngle() > newAngle) {
@@ -53,9 +55,10 @@ public class WingFlapsLogic implements Runnable {
     private void changeAltitude(int angle) {
         int altitudeChange = 0;
         // No altitude change when touchdown
-        if(altimeter.getAltitude()==0){
+        if (altimeter.getAltitude() == 0) {
             return;
         }
+
         switch (angle) {
             case 60 -> altitudeChange = 1000;
             case 30 -> altitudeChange = 500;
@@ -77,7 +80,7 @@ public class WingFlapsLogic implements Runnable {
         }
     }
 
-    public String receive(){
+    public String receive() {
         try {
             chan.exchangeDeclare(Exchange.CONTROLLER_ACTUATOR_EXCHANGE.name, BuiltinExchangeType.TOPIC);
             String qName = chan.queueDeclare().getQueue();
@@ -85,21 +88,20 @@ public class WingFlapsLogic implements Runnable {
             chan.queueBind(qName, Exchange.CONTROLLER_ACTUATOR_EXCHANGE.name, Key.WING_FLAPS.name);
             final CompletableFuture<String> messageResponse = new CompletableFuture<>();
             chan.basicConsume(qName, (x, msg) -> {
-
-                if(msg.getEnvelope().getRoutingKey().contains("off")){
+                // stop consuming
+                if (msg.getEnvelope().getRoutingKey().contains("off")) {
                     try {
-                        if(chan.isOpen()) {
+                        if (chan.isOpen()) {
                             chan.close();
                         }
-                        if(con.isOpen()) {
+                        if (con.isOpen()) {
                             con.close();
                         }
-                        System.out.println("Wing Flaps");
-                    }
-                    catch (TimeoutException e) {
+                    } catch (TimeoutException e) {
                         throw new RuntimeException(e);
                     }
                 }
+
                 messageResponse.complete(new String(msg.getBody(), StandardCharsets.UTF_8));
             }, x -> {
 

@@ -19,7 +19,7 @@ public class LandingGearLogic implements Runnable {
     ConnectionFactory cf = new ConnectionFactory();
     LandingGear landingGear;
 
-    public LandingGearLogic(LandingGear landingGear){
+    public LandingGearLogic(LandingGear landingGear) {
         this.landingGear = landingGear;
         try {
             con = cf.newConnection();
@@ -46,7 +46,7 @@ public class LandingGearLogic implements Runnable {
         }
     }
 
-    public String receive(){
+    public String receive() {
         try {
             chan.exchangeDeclare(Exchange.CONTROLLER_ACTUATOR_EXCHANGE.name, BuiltinExchangeType.TOPIC);
             String qName = chan.queueDeclare().getQueue();
@@ -54,20 +54,20 @@ public class LandingGearLogic implements Runnable {
             chan.queueBind(qName, Exchange.CONTROLLER_ACTUATOR_EXCHANGE.name, Key.LANDING_GEAR.name);
             final CompletableFuture<String> messageResponse = new CompletableFuture<>();
             chan.basicConsume(qName, (x, msg) -> {
+                // stop consuming
                 if (msg.getEnvelope().getRoutingKey().contains("off")) {
-
                     try {
-                        if(chan.isOpen()) {
+                        if (chan.isOpen()) {
                             chan.close();
                         }
-                        if(con.isOpen()) {
+                        if (con.isOpen()) {
                             con.close();
                         }
-                        System.out.println("Landing gear");
                     } catch (TimeoutException e) {
                         throw new RuntimeException(e);
                     }
                 }
+
                 messageResponse.complete(new String(msg.getBody(), StandardCharsets.UTF_8));
             }, x -> {
 

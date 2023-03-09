@@ -2,7 +2,6 @@ package Consumer;
 
 import Controller.Exchange;
 import Controller.Key;
-import Producer.Altimeter;
 import Producer.WayFinder;
 import com.rabbitmq.client.BuiltinExchangeType;
 import com.rabbitmq.client.Channel;
@@ -21,7 +20,6 @@ public class TailFlapsLogic implements Runnable {
     Channel chan;
     TailFlaps tailFlaps;
     WayFinder wayFinder;
-    final int DELTA = 30;
 
     public TailFlapsLogic(TailFlaps tailFlaps, WayFinder wayFinder) {
         this.tailFlaps = tailFlaps;
@@ -64,20 +62,21 @@ public class TailFlapsLogic implements Runnable {
             chan.queueBind(qName, Exchange.CONTROLLER_ACTUATOR_EXCHANGE.name, Key.TAIL_FLAPS.name);
             final CompletableFuture<String> messageResponse = new CompletableFuture<>();
             chan.basicConsume(qName, (x, msg) -> {
+                // stop consuming
                 if (msg.getEnvelope().getRoutingKey().contains("off")) {
                     try {
-                        if(chan.isOpen()) {
+                        if (chan.isOpen()) {
                             chan.close();
                         }
-                        if(con.isOpen()) {
+                        if (con.isOpen()) {
                             con.close();
                         }
-                        System.out.println("Tail Flaps");
 
                     } catch (TimeoutException e) {
                         throw new RuntimeException(e);
                     }
                 }
+
                 messageResponse.complete(new String(msg.getBody(), StandardCharsets.UTF_8));
             }, x -> {
 

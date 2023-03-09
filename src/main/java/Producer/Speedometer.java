@@ -13,7 +13,7 @@ public class Speedometer {
 
     public void setSpeed(int speedChange) {
         if(speedChange != 0) {
-            // speed limit
+            // set speed limit between 0 to MAX_SPEED
             if (speed + speedChange < 0) {
                 speed = 0;
             } else if (speed + speedChange > MAX_SPEED) {
@@ -27,7 +27,6 @@ public class Speedometer {
 
     public Speedometer() {
         speed = rand.nextInt(100, 600);
-//        ScheduledExecutorService timer = Executors.newScheduledThreadPool(1);
-//        timer.scheduleAtFixedRate(new SpeedometerLogic(), 0, 1, TimeUnit.SECONDS);
+
     }
 }

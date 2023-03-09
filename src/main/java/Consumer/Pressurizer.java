@@ -9,11 +9,10 @@ public class Pressurizer {
         return active;
     }
 
-    public void setActive(boolean state){
+    public void setActive(boolean state) {
         active = state;
     }
 
-    public Pressurizer(Barometer barometer) {
-
+    public Pressurizer() {
     }
 }

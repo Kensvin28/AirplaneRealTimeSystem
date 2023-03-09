@@ -2,21 +2,25 @@ package Producer;
 
 import Controller.Weather;
 
+import java.util.Random;
+import java.util.concurrent.TimeUnit;
+
 public class WeatherSystem {
     String weather;
+    Random random = new Random();
 
     public String getWeather() {
         return weather;
     }
 
-    public void setWeather(String newWeather){
-        weather = newWeather;
-        System.out.println("[WEATHER] New Weather: " + weather);
+    public void setWeather() {
+        double probability = random.nextDouble();
+        if(probability <= 0.6)
+            weather = String.valueOf(Weather.values()[0]);
+        else
+            weather = String.valueOf(Weather.values()[1]);
     }
 
     public WeatherSystem() {
-        weather = String.valueOf(Weather.values()[(int)(Math.random()*(Weather.values().length))]);
-//        ScheduledExecutorService timer = Executors.newScheduledThreadPool(1);
-//        timer.scheduleAtFixedRate(new WeatherSystemLogic(), 0, 1, TimeUnit.SECONDS);
     }
 }

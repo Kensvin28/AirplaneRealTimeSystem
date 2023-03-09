@@ -22,6 +22,7 @@ public class EngineLogic implements Runnable {
     Channel chan;
 
     Engine engine;
+    // throttle rate of change
     final int DELTA = 25;
 
     public EngineLogic(Engine engine, Speedometer speedometer, Altimeter altimeter) {
@@ -37,13 +38,13 @@ public class EngineLogic implements Runnable {
 
     public void changeThrottle(int newThrottle) {
         // set max braking throttle to -100%
-        if(engine.getThrottle()+newThrottle<-100){
+        if (engine.getThrottle() + newThrottle < -100) {
             engine.setThrottle(-100);
         }
         // increase throttle
         else if (engine.getThrottle() < newThrottle) {
             engine.setThrottle(DELTA);
-        // decrease throttle
+            // decrease throttle
         } else if (engine.getThrottle() > newThrottle) {
             engine.setThrottle(-DELTA);
         }
@@ -83,6 +84,7 @@ public class EngineLogic implements Runnable {
             chan.queueBind(qName, Exchange.CONTROLLER_ACTUATOR_EXCHANGE.name, Key.ENGINE.name);
             final CompletableFuture<String> messageResponse = new CompletableFuture<>();
             chan.basicConsume(qName, (x, msg) -> {
+                // stop consuming
                 if (msg.getEnvelope().getRoutingKey().contains("off")) {
                     try {
                         if (chan.isOpen()) {
@@ -91,11 +93,11 @@ public class EngineLogic implements Runnable {
                         if (con.isOpen()) {
                             con.close();
                         }
-                        System.out.println("Engine");
                     } catch (TimeoutException e) {
                         throw new RuntimeException(e);
                     }
                 }
+
                 messageResponse.complete(new String(msg.getBody(), StandardCharsets.UTF_8));
             }, x -> {
 

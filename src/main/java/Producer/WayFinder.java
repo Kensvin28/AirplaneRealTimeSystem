@@ -8,6 +8,7 @@ public class WayFinder {
     int direction;
 
     public void setDirection(int directionChange){
+        // manage direction to be within 0-360
         if(direction + directionChange > 360){
             direction = (direction + directionChange) % 360;
         } else if(direction + directionChange < 0){

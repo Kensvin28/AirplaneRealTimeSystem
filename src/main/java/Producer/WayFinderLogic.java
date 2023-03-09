@@ -28,7 +28,7 @@ public class WayFinderLogic implements Runnable {
              Channel channel = connection.createChannel()) {
             channel.exchangeDeclare(Exchange.SENSOR_CONTROLLER_EXCHANGE.name, BuiltinExchangeType.TOPIC);
             channel.basicPublish(Exchange.SENSOR_CONTROLLER_EXCHANGE.name, Key.DIRECTION.name, false, null, String.valueOf(direction).getBytes());
-            System.out.println("[WAYFINDER] Current Direction: " + wayFinder.getDirection());
+            System.out.println("[WAYFINDER] Current Direction: " + wayFinder.getDirection() + "°");
         } catch (IOException | TimeoutException e) {
             throw new RuntimeException(e);
         }

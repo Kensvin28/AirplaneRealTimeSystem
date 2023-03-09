@@ -11,8 +11,7 @@ public enum Key {
     PRESSURIZER("pressurizer.#"),
     OXYGEN_MASKS("oxygenMasks.#"),
     LANDING_GEAR("landingGear.#"),
-    ENGINE("engine.#")
-    ;
+    ENGINE("engine.#");
 
     public final String name;
 

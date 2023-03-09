@@ -18,7 +18,7 @@ public class Engine {
     }
 
     public void setThrottle(int newThrottle) {
-        if(throttle+newThrottle<-100){
+        if (throttle + newThrottle < -100) {
             throttle = -100;
         } else {
             throttle += newThrottle;

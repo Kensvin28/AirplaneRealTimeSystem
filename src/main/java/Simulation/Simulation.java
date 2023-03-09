@@ -27,12 +27,14 @@ public class Simulation {
         Engine engine = new Engine(speedometer, altimeter);
         LandingGear landingGear = new LandingGear();
         OxygenMasks oxygenMasks = new OxygenMasks();
-        Pressurizer pressurizer = new Pressurizer(barometer);
-        TailFlaps tailFlaps = new TailFlaps(altimeter);
-        WingFlaps wingFlaps = new WingFlaps(altimeter);
+        Pressurizer pressurizer = new Pressurizer();
+        TailFlaps tailFlaps = new TailFlaps();
+        WingFlaps wingFlaps = new WingFlaps();
 
+        // initialise executor
         ScheduledExecutorService timer = Executors.newScheduledThreadPool(40);
 
+        // initialise logics
         AltimeterLogic altimeterLogic = new AltimeterLogic(altimeter);
         SpeedometerLogic speedometerLogic = new SpeedometerLogic(speedometer);
         BarometerLogic barometerLogic = new BarometerLogic(barometer, altimeter);
@@ -51,7 +53,7 @@ public class Simulation {
         timer.scheduleAtFixedRate(altimeterLogic, 0, PERIOD, TimeUnit.MILLISECONDS);
         timer.scheduleAtFixedRate(speedometerLogic, 0, PERIOD, TimeUnit.MILLISECONDS);
         timer.scheduleAtFixedRate(barometerLogic, 0, PERIOD, TimeUnit.MILLISECONDS);
-        timer.scheduleAtFixedRate(weatherSystemLogic, 0, 10, TimeUnit.SECONDS);
+        timer.scheduleAtFixedRate(weatherSystemLogic, 0, PERIOD, TimeUnit.MILLISECONDS);
         timer.scheduleAtFixedRate(wayFinderLogic, 0, PERIOD, TimeUnit.MILLISECONDS);
 
         // start actuators
@@ -69,9 +71,15 @@ public class Simulation {
 
         Runnable changeMode = () -> {
             // change to descending mode
-            cruising.setLanding();
-            ex.shutdownNow();
-            phaser.arriveAndAwaitAdvance();
+            while(true) {
+                if (weatherSystem.getWeather().equals("SUNNY")) {
+                    weatherSystemLogic.stopWeatherChange();
+                    cruising.setLanding();
+                    ex.shutdownNow();
+                    phaser.arriveAndAwaitAdvance();
+                    break;
+                }
+            }
 
             // change to descending mode
             ExecutorService ex2 = Executors.newCachedThreadPool();
@@ -87,6 +95,7 @@ public class Simulation {
             ex3.submit(approach);
             phaser.arriveAndAwaitAdvance();
 
+            // end simulation
             approach.setEnd();
             ex3.shutdown();
             timer.shutdownNow();
@@ -94,10 +103,9 @@ public class Simulation {
             phaser.arriveAndDeregister();
             System.out.println("----Simulation finished----");
         };
-
         timer.schedule(changeMode, 2, TimeUnit.SECONDS);
 
-        // Sudden loss of pressure simulation
+        // sudden loss of pressure simulation
         Runnable pressureLoss = () -> {
             barometer.setPressure(-5);
         };

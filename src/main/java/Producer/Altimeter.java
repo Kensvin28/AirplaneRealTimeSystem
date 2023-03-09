@@ -11,9 +11,9 @@ public class Altimeter {
         return altitude;
     }
 
-    public void setAltitude(int altitudeChange){
-        if(altitudeChange != 0) {
-            if(altitude+altitudeChange<0){
+    public void setAltitude(int altitudeChange) {
+        if (altitudeChange != 0) {
+            if (altitude + altitudeChange < 0) {
                 altitude = 0;
             } else {
                 altitude += altitudeChange;
@@ -24,8 +24,6 @@ public class Altimeter {
 
     public Altimeter() {
         altitude = rand.nextInt(30_000, 50_000);
-//        ScheduledExecutorService timer = Executors.newScheduledThreadPool(1);
-//        timer.scheduleAtFixedRate(new AltimeterLogic(), 0, 1, TimeUnit.SECONDS);
     }
 }
 

@@ -1,7 +1,5 @@
 package Controller;
 
-import Consumer.*;
-
 import java.io.IOException;
 import java.util.concurrent.Phaser;
 import java.util.concurrent.TimeoutException;
@@ -19,13 +17,13 @@ public class Descent extends ControllerLogic implements Runnable {
     public void setApproaching() {
         try {
             System.err.println("Approaching runway...");
-            if(chan.isOpen()) {
+            if (chan.isOpen()) {
                 chan.close();
             }
-            if(chan2.isOpen()){
+            if (chan2.isOpen()) {
                 chan2.close();
             }
-            if(con.isOpen()) {
+            if (con.isOpen()) {
                 con.close();
             }
         } catch (IOException | TimeoutException e) {
@@ -39,7 +37,7 @@ public class Descent extends ControllerLogic implements Runnable {
     }
 
 
-    // Speed to 300
+    // speed to 300
     public void handleEngine() {
         String instruction = "";
         if (speed > 500) instruction = "10";
@@ -52,10 +50,13 @@ public class Descent extends ControllerLogic implements Runnable {
         transmit(instruction, Key.ENGINE.name);
     }
 
+    // wing flap to -60
     public void handleWingFlaps() {
-        String instruction = "-60";
-        System.out.println("[CONTROLLER] Telling flap to change its angle to " + instruction + "°");
-        transmit(instruction, Key.WING_FLAPS.name);
+        int instruction = -60;
+        if (instruction != wingFlapsAngle) {
+            System.out.println("[CONTROLLER] Telling wing flaps to change its angle to " + instruction + "°");
+        }
+        transmit(String.valueOf(instruction), Key.WING_FLAPS.name);
     }
 }
 

@@ -13,6 +13,7 @@ import java.util.concurrent.*;
 public abstract class ControllerLogic implements FlightMode {
     ConnectionFactory cf = new ConnectionFactory();
     Random random = new Random();
+
     int altitude;
     double pressure;
     int speed;
@@ -26,6 +27,7 @@ public abstract class ControllerLogic implements FlightMode {
     boolean pressurizerState;
     int tailFlapsAngle;
     int wingFlapsAngle;
+
     Connection con;
     Channel chan;
     Channel chan2;
@@ -53,17 +55,26 @@ public abstract class ControllerLogic implements FlightMode {
     }
 
     public void handlePressurizer() {
-        String instruction = "";
+        boolean instruction = false;
 
-        if (pressure > 12) instruction = "release";
+        // release air
+        if (pressure > 12) instruction = false;
         else if (pressure > 10) return;
-        else if (pressure > 8) instruction = "suck";
+        // suck air
+        else if (pressure > 8) instruction = true;
         else if (pressure > 1) {
             System.err.println("[CONTROLLER] ALERT! PRESSURE LOW");
-            instruction = "suck";
+            instruction = true;
         }
-        System.out.println("[CONTROLLER] Telling pressurizer to " + instruction + " air");
-        transmit(instruction, Key.PRESSURIZER.name);
+
+        if (instruction != pressurizerState) {
+            if (instruction) {
+                System.out.println("[CONTROLLER] Telling pressurizer to suck air");
+            } else {
+                System.out.println("[CONTROLLER] Telling pressurizer to release air");
+            }
+        }
+        transmit(String.valueOf(instruction), Key.PRESSURIZER.name);
     }
 
     public void handleLandingGear() {
@@ -78,24 +89,24 @@ public abstract class ControllerLogic implements FlightMode {
     }
 
     private void handleDirection() {
-        String instruction = "";
+        int instruction;
         int difference = target - direction;
         if (difference < 0)
             difference += 360;
 
         if (difference > 270)
-            instruction = "-30";
+            instruction = -30;
         else if (difference > 180)
-            instruction = "-60";
+            instruction = -60;
         else if (difference > 90)
-            instruction = "60";
+            instruction = 60;
         else if (difference > 0)
-            instruction = "30";
-        else instruction = "0";
+            instruction = 30;
+        else instruction = 0;
 
-        if(!instruction.equals(String.valueOf(tailFlapsAngle))) {
+        if (instruction != tailFlapsAngle) {
             System.out.println("[CONTROLLER] Instructing tail flaps to tilt " + instruction + "°");
-            transmit(instruction, Key.TAIL_FLAPS.name);
+            transmit(String.valueOf(instruction), Key.TAIL_FLAPS.name);
         }
     }
 
@@ -146,8 +157,6 @@ public abstract class ControllerLogic implements FlightMode {
     }
 
     private void handleMessage(String message, String sender) {
-//        System.out.println(sender);
-        //TODO: if different, change, if not don't send change
         if (sender.contains("altitude")) {
             altitude = Integer.parseInt(message);
             CompletableFuture.runAsync(this::handleWingFlaps);
@@ -160,10 +169,13 @@ public abstract class ControllerLogic implements FlightMode {
             speed = Integer.parseInt(message);
             CompletableFuture.runAsync(this::handleEngine);
         } else if (sender.contains("weather")) {
-            weather = Weather.valueOf(message);
-            // evade storm
-            if(weather.equals(Weather.STORMY)){
-                target = 30 * random.nextInt(0, 12);
+            if (weather == null || !weather.equals(Weather.valueOf(message))) {
+                weather = Weather.valueOf(message);
+                // evade storm
+                if (weather.equals(Weather.STORMY)) {
+                    target = 30 * random.nextInt(0, 12);
+                    System.err.println("[CONTROLLER]: Bad weather ahead, diverting to " + target + "°");
+                }
             }
         } else if (sender.contains("direction")) {
             direction = Integer.parseInt(message);
@@ -173,6 +185,18 @@ public abstract class ControllerLogic implements FlightMode {
             if (isLandingGearDown()) {
                 phaser.arriveAndDeregister();
             }
+        } else if (sender.contains("engine")) {
+            throttle = Integer.parseInt(message);
+            System.out.println("[CONTROLLER] Engine throttle at " + throttle + "%");
+        } else if (sender.contains("pressurizer")) {
+            pressurizerState = Boolean.parseBoolean(message);
+            System.out.println("[CONTROLLER] Pressurizing: " + pressurizerState);
+        } else if (sender.contains("tailFlaps")) {
+            tailFlapsAngle = Integer.parseInt(message);
+            System.out.println("[CONTROLLER] Tail flaps angle at " + tailFlapsAngle + "°");
+        } else if (sender.contains("wingFlaps")) {
+            wingFlapsAngle = Integer.parseInt(message);
+            System.out.println("[CONTROLLER] Wing flaps angle at " + wingFlapsAngle + "°");
         }
     }
 
@@ -186,6 +210,7 @@ public abstract class ControllerLogic implements FlightMode {
         }
     }
 
+    // Turn off the actuator consumers
     void off() {
         try (Connection connection = cf.newConnection();
              Channel channel = connection.createChannel()) {
