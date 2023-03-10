@@ -34,6 +34,7 @@ public class LandingGearLogic implements Runnable {
             landingGear.setActive(true);
             System.err.println("[LANDING GEAR] Lowering landing gear...");
         }
+        transmit(landingGear.isActive());
     }
 
     public void transmit(boolean landingGearDown) {
@@ -83,6 +84,5 @@ public class LandingGearLogic implements Runnable {
     public void run() {
         String message = receive();
         lower(message);
-        transmit(landingGear.isActive());
     }
 }
