@@ -1,14 +1,35 @@
 package Simulation;
 
 import Consumer.*;
+import Controller.Approach;
+import Controller.Cruising;
+import Controller.Descent;
 import Producer.*;
-import Controller.*;
+import org.openjdk.jmh.annotations.*;
 
 import java.util.Random;
 import java.util.concurrent.*;
 
-public class Simulation {
+public class Simulation1 {
     public static void main(String[] args) {
+        simulate();
+    }
+
+        @Benchmark
+    @BenchmarkMode(Mode.AverageTime)
+    //Throughput: (default mode) To measure the throughput of a piece of code. This is used to measure the number of times a method is executed in a certain time. Use this when the method takes only a few milliseconds.
+    //AverageTime: This is to get the average time the method takes to execute.
+    //SampleTime: Sampled time for each operation. Shows p50, p90, p99, min and max times.
+    //SingleShotTime:  This measures the time for a single operation. Use this when you want to account for the cold start time also.
+    //All: Measures all of the above.
+    @Measurement(iterations = 3)
+    //It is used to set the default measurement parameters for the benchmark. It allows to specify the number of iterations and the time for which each is to be executed.
+    @OutputTimeUnit(TimeUnit.SECONDS)
+    @Warmup(iterations = 1)
+    @Fork(1) //run each iteration value times
+    public static void simulate() {
+        System.out.println("----Simulation started----");
+        long startTime = System.nanoTime();
         final int PERIOD = 500;
         Random random = new Random();
 
@@ -48,7 +69,6 @@ public class Simulation {
         TailFlapsLogic tailFlapsLogic = new TailFlapsLogic(tailFlaps, wayFinder);
         WingFlapsLogic wingFlapsLogic = new WingFlapsLogic(wingFlaps, altimeter);
 
-        System.out.println("----Simulation started----");
         // start actuators
         timer.scheduleAtFixedRate(engineLogic, 0, PERIOD, TimeUnit.MILLISECONDS);
         timer.scheduleAtFixedRate(landingGearLogic, 0, PERIOD, TimeUnit.MILLISECONDS);
@@ -58,7 +78,7 @@ public class Simulation {
         timer.scheduleAtFixedRate(wingFlapsLogic, 0, PERIOD, TimeUnit.MILLISECONDS);
 
         // start controller
-        ExecutorService ex = Executors.newFixedThreadPool(8);
+        ExecutorService ex = Executors.newFixedThreadPool(1);
         Cruising cruising = new Cruising(timer, phaser);
         ex.submit(cruising);
 
@@ -73,12 +93,11 @@ public class Simulation {
         Runnable pressureLoss = () -> {
             barometer.setPressure(-5);
         };
-        timer.schedule(pressureLoss, random.nextInt(10,20), TimeUnit.SECONDS);
+        timer.schedule(pressureLoss, random.nextInt(10, 20), TimeUnit.SECONDS);
 
         Runnable changeMode = () -> {
             // change to descending mode
-            while(true) {
-                System.out.println(weatherSystem.getWeather());
+            while (true) {
                 if (weatherSystem.getWeather().equals("SUNNY")) {
                     weatherSystemLogic.stopWeatherChange();
                     cruising.setLanding();
@@ -89,7 +108,7 @@ public class Simulation {
             }
 
             // change to descending mode
-            ExecutorService ex2 = Executors.newCachedThreadPool();
+            ExecutorService ex2 = Executors.newFixedThreadPool(1);
             Descent descent = new Descent(phaser);
             ex2.submit(descent);
             phaser.arriveAndAwaitAdvance();
@@ -97,7 +116,7 @@ public class Simulation {
             // change to approaching mode
             descent.setApproaching();
             ex2.shutdownNow();
-            ExecutorService ex3 = Executors.newCachedThreadPool();
+            ExecutorService ex3 = Executors.newFixedThreadPool(1);
             Approach approach = new Approach(phaser);
             ex3.submit(approach);
             phaser.arriveAndAwaitAdvance();
@@ -109,8 +128,10 @@ public class Simulation {
 
             phaser.arriveAndDeregister();
 
+            long endTime = System.nanoTime();
             System.out.println("----Simulation finished----");
+            System.out.printf("Simulation duration: %f s", (float) (endTime - startTime)/1_000_000_000);
         };
-        timer.schedule(changeMode, random.nextInt(20,30), TimeUnit.SECONDS);
+        timer.schedule(changeMode, 20, TimeUnit.SECONDS);
     }
 }

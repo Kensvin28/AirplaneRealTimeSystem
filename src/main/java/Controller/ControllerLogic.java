@@ -24,6 +24,7 @@ public abstract class ControllerLogic implements FlightMode {
     int throttle;
 
     boolean landingGearDown;
+    boolean touchDown = false;
     boolean oxygenMasksDown = false;
     String pressurizerState;
     int tailFlapsAngle;
@@ -169,6 +170,10 @@ public abstract class ControllerLogic implements FlightMode {
         }
         else if (sender.contains("altitude")) {
             altitude = Integer.parseInt(message);
+            if(altitude == 0 && !touchDown){
+                touchDown = true;
+                System.err.println("[CONTROLLER] TOUCHDOWN");
+            }
             CompletableFuture.runAsync(this::handleWingFlaps);
             CompletableFuture.runAsync(this::handleLandingGear);
         } else if (sender.contains("speed")) {

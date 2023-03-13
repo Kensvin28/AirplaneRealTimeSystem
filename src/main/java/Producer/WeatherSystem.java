@@ -15,7 +15,7 @@ public class WeatherSystem {
 
     public void setWeather() {
         double probability = random.nextDouble();
-        if(probability <= 0.6)
+        if(probability <= 0.9)
             weather = String.valueOf(Weather.values()[0]);
         else
             weather = String.valueOf(Weather.values()[1]);
