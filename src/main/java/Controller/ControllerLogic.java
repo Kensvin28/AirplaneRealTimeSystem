@@ -65,7 +65,7 @@ public abstract class ControllerLogic implements FlightMode {
     synchronized public void handleLandingGear() {
         String instruction;
         if (!isLandingGearDown()) {
-            if (altitude < 2000 && speed < 400) {
+            if (altitude < 2000 && speed <= 400) {
                 instruction = "lower";
                 System.out.println("[CONTROLLER] Instructing landing gear to be lowered");
                 transmit(instruction, Key.LANDING_GEAR.name);

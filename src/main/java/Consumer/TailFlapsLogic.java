@@ -35,7 +35,7 @@ public class TailFlapsLogic implements Runnable {
     public void moveFlaps(int newAngle) {
         tailFlaps.setAngle(newAngle);
         System.out.println("[TAIL FLAPS] Flap angle at " + tailFlaps.getAngle() + "°");
-        transmit(newAngle);
+        transmit(tailFlaps.getAngle());
         changeDirection(newAngle);
     }
 
