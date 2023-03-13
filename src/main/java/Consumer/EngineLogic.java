@@ -92,7 +92,6 @@ public class EngineLogic implements Runnable {
                         if (con.isOpen()) {
                             con.close();
                         }
-//                        System.out.println("engine closed");
                     } catch (TimeoutException e) {
                         throw new RuntimeException(e);
                     }

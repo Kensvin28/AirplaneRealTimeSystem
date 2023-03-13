@@ -71,7 +71,6 @@ public class TailFlapsLogic implements Runnable {
                         if (con.isOpen()) {
                             con.close();
                         }
-//                        System.out.println("tail closed");
                     } catch (TimeoutException e) {
                         throw new RuntimeException(e);
                     }

@@ -96,7 +96,6 @@ public class WingFlapsLogic implements Runnable {
                         if (con.isOpen()) {
                             con.close();
                         }
-//                        System.out.println("wing closed");
                     } catch (TimeoutException e) {
                         throw new RuntimeException(e);
                     }

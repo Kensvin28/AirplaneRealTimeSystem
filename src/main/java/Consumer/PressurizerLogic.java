@@ -92,7 +92,6 @@ public class PressurizerLogic implements Runnable {
                         if (con.isOpen()) {
                             con.close();
                         }
-//                        System.out.println("pressurizer closed");
 
                     } catch (TimeoutException e) {
                         throw new RuntimeException(e);

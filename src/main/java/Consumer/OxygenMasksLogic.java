@@ -53,7 +53,6 @@ public class OxygenMasksLogic implements Runnable {
                         if (con.isOpen()) {
                             con.close();
                         }
-//                        System.out.println("oxygen masks closed");
                     } catch (TimeoutException e) {
                         throw new RuntimeException(e);
                     }
