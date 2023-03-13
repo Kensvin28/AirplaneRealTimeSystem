@@ -27,6 +27,7 @@ public class Approach extends ControllerLogic implements Runnable {
             if (con.isOpen()) {
                 con.close();
             }
+            ex.shutdown();
         } catch (IOException | TimeoutException e) {
             throw new RuntimeException(e);
         } finally {

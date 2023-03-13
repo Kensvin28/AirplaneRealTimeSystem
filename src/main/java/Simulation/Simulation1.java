@@ -78,10 +78,9 @@ public class Simulation1 {
         timer.scheduleAtFixedRate(wingFlapsLogic, 0, PERIOD, TimeUnit.MILLISECONDS);
 
         // start controller
-//        ExecutorService ex = Executors.newFixedThreadPool(1);
+        ExecutorService ex = Executors.newFixedThreadPool(1);
         Cruising cruising = new Cruising(timer, phaser);
-        CompletableFuture.runAsync(cruising);
-//        ex.submit(cruising);
+        ex.submit(cruising);
 
         // start sensors
         timer.scheduleAtFixedRate(altimeterLogic, 0, PERIOD, TimeUnit.MILLISECONDS);
@@ -102,31 +101,31 @@ public class Simulation1 {
                 if (weatherSystem.getWeather().equals("SUNNY")) {
                     weatherSystemLogic.stopWeatherChange();
                     cruising.setLanding();
-//                    ex.shutdownNow();
+                    ex.shutdownNow();
                     phaser.arriveAndAwaitAdvance();
                     break;
+                } else {
+                    weatherSystem.setWeather();
                 }
             }
 
             // change to descending mode
-//            ExecutorService ex2 = Executors.newFixedThreadPool(1);
+            ExecutorService ex2 = Executors.newFixedThreadPool(1);
             Descent descent = new Descent(phaser);
-            CompletableFuture.runAsync(descent);
-//            ex2.submit(descent);
+            ex2.submit(descent);
             phaser.arriveAndAwaitAdvance();
 
             // change to approaching mode
             descent.setApproaching();
-//            ex2.shutdownNow();
-//            ExecutorService ex3 = Executors.newFixedThreadPool(1);
+            ex2.shutdownNow();
+            ExecutorService ex3 = Executors.newFixedThreadPool(1);
             Approach approach = new Approach(phaser);
-            CompletableFuture.runAsync(approach);
-//            ex3.submit(approach);
+            ex3.submit(approach);
             phaser.arriveAndAwaitAdvance();
 
             // end simulation
             approach.setEnd();
-//            ex3.shutdown();
+            ex3.shutdown();
             timer.shutdownNow();
 
             phaser.arriveAndDeregister();

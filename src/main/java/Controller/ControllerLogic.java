@@ -34,7 +34,7 @@ public abstract class ControllerLogic implements FlightMode {
     Channel chan;
     Channel chan2;
     Phaser phaser;
-
+    ExecutorService ex;
     public ControllerLogic(Phaser phaser) {
         this.phaser = phaser;
         try {
@@ -44,6 +44,7 @@ public abstract class ControllerLogic implements FlightMode {
         } catch (IOException | TimeoutException e) {
             throw new RuntimeException(e);
         }
+        this.ex = Executors.newFixedThreadPool(8);
     }
 
     synchronized public void handleOxygenMasks() {
@@ -78,7 +79,7 @@ public abstract class ControllerLogic implements FlightMode {
         else if (pressure > 1) {
             System.err.println("[CONTROLLER] ALERT! PRESSURE LOW");
             instruction = "suck maximum";
-            CompletableFuture.runAsync(this::handleOxygenMasks);
+            ex.submit(this::handleOxygenMasks);
         }
 
         if (!instruction.equals(pressurizerState)) {
@@ -166,7 +167,7 @@ public abstract class ControllerLogic implements FlightMode {
     private void handleMessage(String message, String sender) {
         if (sender.contains("pressure")) {
             pressure = Double.parseDouble(message);
-            CompletableFuture.runAsync(this::handlePressurizer);
+            ex.submit(this::handlePressurizer);
         }
         else if (sender.contains("altitude")) {
             altitude = Integer.parseInt(message);
@@ -174,19 +175,19 @@ public abstract class ControllerLogic implements FlightMode {
                 touchDown = true;
                 System.err.println("[CONTROLLER] TOUCHDOWN");
             }
-            CompletableFuture.runAsync(this::handleWingFlaps);
-            CompletableFuture.runAsync(this::handleLandingGear);
+            ex.submit(this::handleWingFlaps);
+            ex.submit(this::handleLandingGear);
         } else if (sender.contains("speed")) {
             speed = Integer.parseInt(message);
-            CompletableFuture.runAsync(this::handleEngine);
+            ex.submit(this::handleEngine);
         } else if (sender.contains("weather")) {
             if (weather == null || !weather.equals(Weather.valueOf(message))) {
                 weather = Weather.valueOf(message);
-                CompletableFuture.runAsync(this::handleWeather);
+                ex.submit(this::handleWeather);
             }
         } else if (sender.contains("direction")) {
             direction = Integer.parseInt(message);
-            CompletableFuture.runAsync(this::handleDirection);
+            ex.submit(this::handleDirection);
         } else if (sender.contains("landingGear")) {
             setLandingGearDown(message);
             if (isLandingGearDown()) {

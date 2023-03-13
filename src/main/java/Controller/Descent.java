@@ -16,6 +16,7 @@ public class Descent extends ControllerLogic implements Runnable {
 
     public void setApproaching() {
         try {
+            ex.shutdown();
             System.err.println("Approaching runway...");
             if (chan.isOpen()) {
                 chan.close();

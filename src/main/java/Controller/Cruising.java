@@ -31,6 +31,7 @@ public class Cruising extends ControllerLogic implements Runnable {
 
     public void setLanding() {
         try {
+            ex.shutdown();
             System.err.println("Plane is going to land");
             if (chan.isOpen()) {
                 chan.close();
