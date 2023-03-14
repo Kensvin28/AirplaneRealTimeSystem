@@ -9,6 +9,7 @@ import org.openjdk.jmh.annotations.*;
 
 import java.util.Random;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class Simulation1 {
     public static void main(String[] args) {
@@ -32,6 +33,7 @@ public class Simulation1 {
         long startTime = System.nanoTime();
         final int PERIOD = 500;
         Random random = new Random();
+            AtomicInteger target = new AtomicInteger(30 * random.nextInt(0, 12));
 
         // initialise phaser for cruising, descending, and approach phases
         Phaser phaser = new Phaser();
@@ -79,7 +81,7 @@ public class Simulation1 {
 
         // start controller
         ExecutorService ex = Executors.newFixedThreadPool(1);
-        Cruising cruising = new Cruising(timer, phaser);
+        Cruising cruising = new Cruising(timer, phaser, target.get());
         ex.submit(cruising);
 
         // start sensors
@@ -101,6 +103,7 @@ public class Simulation1 {
                 if (weatherSystem.getWeather().equals("SUNNY")) {
                     weatherSystemLogic.stopWeatherChange();
                     cruising.setLanding();
+                    target.set(cruising.getTarget());
                     ex.shutdownNow();
                     phaser.arriveAndAwaitAdvance();
                     break;
@@ -111,7 +114,7 @@ public class Simulation1 {
 
             // change to descending mode
             ExecutorService ex2 = Executors.newFixedThreadPool(1);
-            Descent descent = new Descent(phaser);
+            Descent descent = new Descent(phaser, target.get());
             ex2.submit(descent);
             phaser.arriveAndAwaitAdvance();
 
@@ -119,7 +122,7 @@ public class Simulation1 {
             descent.setApproaching();
             ex2.shutdownNow();
             ExecutorService ex3 = Executors.newFixedThreadPool(1);
-            Approach approach = new Approach(phaser);
+            Approach approach = new Approach(phaser, target.get());
             ex3.submit(approach);
             phaser.arriveAndAwaitAdvance();
 
@@ -134,6 +137,6 @@ public class Simulation1 {
             System.out.println("----Simulation finished----");
             System.out.printf("Simulation duration: %f s", (float) (endTime - startTime)/1_000_000_000);
         };
-        timer.schedule(changeMode, 20, TimeUnit.SECONDS);
+        timer.schedule(changeMode, 500, TimeUnit.SECONDS);
     }
 }

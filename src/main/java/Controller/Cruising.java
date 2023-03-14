@@ -6,11 +6,12 @@ import java.util.concurrent.*;
 public class Cruising extends ControllerLogic implements Runnable {
     Phaser phaser;
 
-    public Cruising(ScheduledExecutorService timer, Phaser phaser) {
-        super(phaser);
+    public Cruising(ScheduledExecutorService timer, Phaser phaser, int target) {
+        super(phaser, target);
         System.out.println("[CONTROLLER] Target direction: " + target);
         landingGearDown = false;
         this.phaser = phaser;
+        this.target = target;
         phaser.register();
 
         // refresh target waypoint every 10 seconds

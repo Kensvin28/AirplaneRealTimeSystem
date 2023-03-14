@@ -7,10 +7,11 @@ import java.util.concurrent.TimeoutException;
 public class Approach extends ControllerLogic implements Runnable {
     Phaser phaser;
 
-    public Approach(Phaser phaser) {
-        super(phaser);
+    public Approach(Phaser phaser, int target) {
+        super(phaser, target);
         landingGearDown = true;
         this.phaser = phaser;
+        this.target = target;
         phaser.register();
     }
 

@@ -7,10 +7,11 @@ import java.util.concurrent.TimeoutException;
 public class Descent extends ControllerLogic implements Runnable {
     Phaser phaser;
 
-    public Descent(Phaser phaser) {
-        super(phaser);
+    public Descent(Phaser phaser, int target) {
+        super(phaser, target);
         landingGearDown = false;
         this.phaser = phaser;
+        this.target = target;
         phaser.register();
     }
 

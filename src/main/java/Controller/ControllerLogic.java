@@ -20,7 +20,7 @@ public abstract class ControllerLogic implements FlightMode {
     int speed;
     Weather weather;
     int direction;
-    int target = 30 * random.nextInt(0, 12);
+    int target;
     int throttle;
 
     boolean landingGearDown;
@@ -35,8 +35,9 @@ public abstract class ControllerLogic implements FlightMode {
     Channel chan2;
     Phaser phaser;
     ExecutorService ex;
-    public ControllerLogic(Phaser phaser) {
+    public ControllerLogic(Phaser phaser, int target) {
         this.phaser = phaser;
+        this.target = target;
         try {
             con = cf.newConnection();
             chan = con.createChannel();
@@ -45,6 +46,10 @@ public abstract class ControllerLogic implements FlightMode {
             throw new RuntimeException(e);
         }
         this.ex = Executors.newFixedThreadPool(8);
+    }
+
+    public int getTarget() {
+        return target;
     }
 
     synchronized public void handleOxygenMasks() {
@@ -105,9 +110,10 @@ public abstract class ControllerLogic implements FlightMode {
         else instruction = 0;
 
         if (instruction != tailFlapsAngle) {
+            System.out.println("[CONTROLLER] Target direction: " + target);
             System.out.println("[CONTROLLER] Instructing tail flaps to tilt " + instruction + "°");
-            transmit(String.valueOf(instruction), Key.TAIL_FLAPS.name);
         }
+        transmit(String.valueOf(instruction), Key.TAIL_FLAPS.name);
     }
 
     synchronized private void handleWeather() {
