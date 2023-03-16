@@ -16,18 +16,6 @@ public class Simulation1 {
         simulate();
     }
 
-//        @Benchmark
-//    @BenchmarkMode(Mode.AverageTime)
-//    //Throughput: (default mode) To measure the throughput of a piece of code. This is used to measure the number of times a method is executed in a certain time. Use this when the method takes only a few milliseconds.
-//    //AverageTime: This is to get the average time the method takes to execute.
-//    //SampleTime: Sampled time for each operation. Shows p50, p90, p99, min and max times.
-//    //SingleShotTime:  This measures the time for a single operation. Use this when you want to account for the cold start time also.
-//    //All: Measures all of the above.
-//    @Measurement(iterations = 3)
-//    //It is used to set the default measurement parameters for the benchmark. It allows to specify the number of iterations and the time for which each is to be executed.
-//    @OutputTimeUnit(TimeUnit.SECONDS)
-//    @Warmup(iterations = 1)
-//    @Fork(1) //run each iteration value times
     public static void simulate() {
         System.out.println("----Simulation started----");
         long startTime = System.nanoTime();
