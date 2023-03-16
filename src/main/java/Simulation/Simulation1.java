@@ -16,22 +16,25 @@ public class Simulation1 {
         simulate();
     }
 
-        @Benchmark
-    @BenchmarkMode(Mode.AverageTime)
-    //Throughput: (default mode) To measure the throughput of a piece of code. This is used to measure the number of times a method is executed in a certain time. Use this when the method takes only a few milliseconds.
-    //AverageTime: This is to get the average time the method takes to execute.
-    //SampleTime: Sampled time for each operation. Shows p50, p90, p99, min and max times.
-    //SingleShotTime:  This measures the time for a single operation. Use this when you want to account for the cold start time also.
-    //All: Measures all of the above.
-    @Measurement(iterations = 3)
-    //It is used to set the default measurement parameters for the benchmark. It allows to specify the number of iterations and the time for which each is to be executed.
-    @OutputTimeUnit(TimeUnit.SECONDS)
-    @Warmup(iterations = 1)
-    @Fork(1) //run each iteration value times
+//        @Benchmark
+//    @BenchmarkMode(Mode.AverageTime)
+//    //Throughput: (default mode) To measure the throughput of a piece of code. This is used to measure the number of times a method is executed in a certain time. Use this when the method takes only a few milliseconds.
+//    //AverageTime: This is to get the average time the method takes to execute.
+//    //SampleTime: Sampled time for each operation. Shows p50, p90, p99, min and max times.
+//    //SingleShotTime:  This measures the time for a single operation. Use this when you want to account for the cold start time also.
+//    //All: Measures all of the above.
+//    @Measurement(iterations = 3)
+//    //It is used to set the default measurement parameters for the benchmark. It allows to specify the number of iterations and the time for which each is to be executed.
+//    @OutputTimeUnit(TimeUnit.SECONDS)
+//    @Warmup(iterations = 1)
+//    @Fork(1) //run each iteration value times
     public static void simulate() {
         System.out.println("----Simulation started----");
         long startTime = System.nanoTime();
+        // fixed rate for executing logics
         final int PERIOD = 500;
+        // delay before descending
+        final int DELAY = 20;
         Random random = new Random();
             AtomicInteger target = new AtomicInteger(30 * random.nextInt(0, 12));
 
@@ -54,9 +57,6 @@ public class Simulation1 {
         TailFlaps tailFlaps = new TailFlaps();
         WingFlaps wingFlaps = new WingFlaps();
 
-        // initialise executor
-        ScheduledExecutorService timer = Executors.newScheduledThreadPool(40);
-
         // initialise logics
         AltimeterLogic altimeterLogic = new AltimeterLogic(altimeter);
         SpeedometerLogic speedometerLogic = new SpeedometerLogic(speedometer);
@@ -70,6 +70,9 @@ public class Simulation1 {
         PressurizerLogic pressurizerLogic = new PressurizerLogic(pressurizer, barometer);
         TailFlapsLogic tailFlapsLogic = new TailFlapsLogic(tailFlaps, wayFinder);
         WingFlapsLogic wingFlapsLogic = new WingFlapsLogic(wingFlaps, altimeter);
+
+        // initialise executor
+        ScheduledExecutorService timer = Executors.newScheduledThreadPool(20);
 
         // start actuators
         timer.scheduleAtFixedRate(engineLogic, 0, PERIOD, TimeUnit.MILLISECONDS);
@@ -95,11 +98,12 @@ public class Simulation1 {
         Runnable pressureLoss = () -> {
             barometer.setPressure(-5);
         };
-        timer.schedule(pressureLoss, random.nextInt(10, 20), TimeUnit.SECONDS);
+        timer.schedule(pressureLoss, random.nextInt(10, DELAY), TimeUnit.SECONDS);
 
+        // change to descending mode
         Runnable changeMode = () -> {
-            // change to descending mode
             while (true) {
+                // proceed descent when weather is sunny
                 if (weatherSystem.getWeather().equals("SUNNY")) {
                     weatherSystemLogic.stopWeatherChange();
                     cruising.setLanding();
@@ -137,6 +141,6 @@ public class Simulation1 {
             System.out.println("----Simulation finished----");
             System.out.printf("Simulation duration: %f s", (float) (endTime - startTime)/1_000_000_000);
         };
-        timer.schedule(changeMode, 500, TimeUnit.SECONDS);
+        timer.schedule(changeMode, DELAY, TimeUnit.SECONDS);
     }
 }

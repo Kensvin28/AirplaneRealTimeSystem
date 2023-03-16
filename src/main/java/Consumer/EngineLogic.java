@@ -35,6 +35,31 @@ public class EngineLogic implements Runnable {
         }
     }
 
+    public String receive() {
+        try {
+            chan.exchangeDeclare(Exchange.CONTROLLER_ACTUATOR_EXCHANGE.name, BuiltinExchangeType.TOPIC);
+            String qName = chan.queueDeclare().getQueue();
+            chan.basicQos(2);
+            chan.queueBind(qName, Exchange.CONTROLLER_ACTUATOR_EXCHANGE.name, Key.ENGINE.name);
+            final CompletableFuture<String> messageResponse = new CompletableFuture<>();
+            chan.basicConsume(qName, (x, msg) -> {
+                // stop consuming
+                if (msg.getEnvelope().getRoutingKey().contains("off")) {
+                    try {
+                        if (chan.isOpen()) {chan.close();}
+                        if (con.isOpen()) {con.close();}
+                    } catch (TimeoutException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+                messageResponse.complete(new String(msg.getBody(), StandardCharsets.UTF_8));
+            }, x -> {});
+            return messageResponse.get();
+        } catch (IOException | ExecutionException | InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     public void changeThrottle(int newThrottle) {
         // set max braking throttle to -100%
         if (engine.getThrottle() + newThrottle < -100) {
@@ -69,40 +94,9 @@ public class EngineLogic implements Runnable {
         try (Connection connection = cf.newConnection();
              Channel channel = connection.createChannel()) {
             channel.exchangeDeclare(Exchange.ACTUATOR_CONTROLLER_EXCHANGE.name, BuiltinExchangeType.TOPIC);
-            channel.basicPublish(Exchange.ACTUATOR_CONTROLLER_EXCHANGE.name, Key.ENGINE.name, false, null, String.valueOf(throttle).getBytes());
+            channel.basicPublish(Exchange.ACTUATOR_CONTROLLER_EXCHANGE.name, Key.ENGINE.name,
+                    false, null, String.valueOf(throttle).getBytes());
         } catch (IOException | TimeoutException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    public String receive() {
-        try {
-            chan.exchangeDeclare(Exchange.CONTROLLER_ACTUATOR_EXCHANGE.name, BuiltinExchangeType.TOPIC);
-            String qName = chan.queueDeclare().getQueue();
-            chan.basicQos(2);
-            chan.queueBind(qName, Exchange.CONTROLLER_ACTUATOR_EXCHANGE.name, Key.ENGINE.name);
-            final CompletableFuture<String> messageResponse = new CompletableFuture<>();
-            chan.basicConsume(qName, (x, msg) -> {
-                // stop consuming
-                if (msg.getEnvelope().getRoutingKey().contains("off")) {
-                    try {
-                        if (chan.isOpen()) {
-                            chan.close();
-                        }
-                        if (con.isOpen()) {
-                            con.close();
-                        }
-                    } catch (TimeoutException e) {
-                        throw new RuntimeException(e);
-                    }
-                }
-
-                messageResponse.complete(new String(msg.getBody(), StandardCharsets.UTF_8));
-            }, x -> {
-
-            });
-            return messageResponse.get();
-        } catch (IOException | ExecutionException | InterruptedException e) {
             throw new RuntimeException(e);
         }
     }

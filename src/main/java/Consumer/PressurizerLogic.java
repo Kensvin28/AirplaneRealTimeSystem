@@ -57,7 +57,7 @@ public class PressurizerLogic implements Runnable {
         if (valve.equals("suck")) {
             pressureChange = DELTA;
         } else if (valve.equals("suck maximum")) {
-            pressureChange = 2*DELTA;
+            pressureChange = 1.5*DELTA;
         } else {
             pressureChange = -DELTA;
         }
