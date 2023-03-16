@@ -19,10 +19,10 @@ public class Simulation1 {
     public static void simulate() {
         System.out.println("----Simulation started----");
         long startTime = System.nanoTime();
-        // fixed rate for executing logics
+        // fixed rate for executing logics (milliseconds)
         final int PERIOD = 500;
-        // delay before descending
-        final int DELAY = 20;
+        // delay before descending (seconds)
+        final int DELAY = 10;
         Random random = new Random();
             AtomicInteger target = new AtomicInteger(30 * random.nextInt(0, 12));
 
@@ -86,7 +86,7 @@ public class Simulation1 {
         Runnable pressureLoss = () -> {
             barometer.setPressure(-5);
         };
-        timer.schedule(pressureLoss, random.nextInt(10, DELAY), TimeUnit.SECONDS);
+        timer.schedule(pressureLoss, random.nextInt(5, DELAY), TimeUnit.SECONDS);
 
         // change to descending mode
         Runnable changeMode = () -> {
