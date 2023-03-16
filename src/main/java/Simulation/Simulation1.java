@@ -5,7 +5,6 @@ import Controller.Approach;
 import Controller.Cruising;
 import Controller.Descent;
 import Producer.*;
-import org.openjdk.jmh.annotations.*;
 
 import java.util.Random;
 import java.util.concurrent.*;
@@ -24,7 +23,7 @@ public class Simulation1 {
         // delay before descending (seconds)
         final int DELAY = 10;
         Random random = new Random();
-            AtomicInteger target = new AtomicInteger(30 * random.nextInt(0, 12));
+        AtomicInteger target = new AtomicInteger(30 * random.nextInt(0, 12));
 
         // initialise phaser for cruising, descending, and approach phases
         Phaser phaser = new Phaser();
@@ -127,7 +126,8 @@ public class Simulation1 {
 
             long endTime = System.nanoTime();
             System.out.println("----Simulation finished----");
-            System.out.printf("Simulation duration: %f s", (float) (endTime - startTime)/1_000_000_000);
+            System.out.printf("Simulation duration: %f s",
+                    (float) (endTime - startTime)/1_000_000_000);
         };
         timer.schedule(changeMode, DELAY, TimeUnit.SECONDS);
     }
