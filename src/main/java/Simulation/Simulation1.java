@@ -70,7 +70,7 @@ public class Simulation1 {
         timer.scheduleAtFixedRate(wingFlapsLogic, 0, PERIOD, TimeUnit.MILLISECONDS);
 
         // start controller
-        ExecutorService ex = Executors.newFixedThreadPool(1);
+        ExecutorService ex = Executors.newCachedThreadPool();
         Cruising cruising = new Cruising(timer, phaser, target.get());
         ex.submit(cruising);
 
@@ -104,7 +104,7 @@ public class Simulation1 {
             }
 
             // change to descending mode
-            ExecutorService ex2 = Executors.newFixedThreadPool(1);
+            ExecutorService ex2 = Executors.newCachedThreadPool();
             Descent descent = new Descent(phaser, target.get());
             ex2.submit(descent);
             phaser.arriveAndAwaitAdvance();
@@ -112,7 +112,7 @@ public class Simulation1 {
             // change to approaching mode
             descent.setApproaching();
             ex2.shutdownNow();
-            ExecutorService ex3 = Executors.newFixedThreadPool(1);
+            ExecutorService ex3 = Executors.newCachedThreadPool();
             Approach approach = new Approach(phaser, target.get());
             ex3.submit(approach);
             phaser.arriveAndAwaitAdvance();
@@ -129,6 +129,6 @@ public class Simulation1 {
             System.out.printf("Simulation duration: %f s",
                     (float) (endTime - startTime)/1_000_000_000);
         };
-        timer.schedule(changeMode, DELAY, TimeUnit.SECONDS);
+        timer.schedule(changeMode, 60, TimeUnit.SECONDS);
     }
 }
