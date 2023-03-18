@@ -15,6 +15,7 @@ public class WeatherSystem {
 
     public void setWeather() {
         double probability = random.nextDouble();
+        // set weather to sunny 90% of the time and stormy 10% of the time
         if(probability <= 0.9)
             weather = String.valueOf(Weather.values()[0]);
         else

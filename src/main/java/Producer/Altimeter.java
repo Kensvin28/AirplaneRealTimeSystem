@@ -12,6 +12,7 @@ public class Altimeter {
     }
 
     synchronized public void setAltitude(int altitudeChange) {
+        // set the lowest limit to 0
         if (altitudeChange != 0) {
             if (altitude + altitudeChange < 0) {
                 altitude = 0;
