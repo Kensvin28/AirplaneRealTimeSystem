@@ -93,7 +93,7 @@ public abstract class ControllerLogic implements FlightMode {
         transmit(instruction, Key.PRESSURIZER.name);
     }
 
-    synchronized private void handleDirection() {
+    synchronized private void handleTailFlaps() {
         int instruction;
         int difference = target - direction;
         if (difference < 0)
@@ -193,7 +193,7 @@ public abstract class ControllerLogic implements FlightMode {
             }
         } else if (sender.contains("direction")) {
             direction = Integer.parseInt(message);
-            ex.submit(this::handleDirection);
+            ex.submit(this::handleTailFlaps);
         } else if (sender.contains("landingGear")) {
             setLandingGearDown(message);
             if (isLandingGearDown()) {
