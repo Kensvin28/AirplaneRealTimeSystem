@@ -26,6 +26,7 @@ public class BarometerLogic implements Runnable {
         transmit(barometer.getPressure());
     }
 
+    // algorithm to determine if the pressure outside would increase or decrease cabin pressure
     public void changePressure(){
         int altitude = altimeter.getAltitude();
         double outsidePressure = (50000 - altitude)*12.5/50000;

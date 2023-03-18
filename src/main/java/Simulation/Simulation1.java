@@ -21,7 +21,7 @@ public class Simulation1 {
         // fixed rate for executing logics (milliseconds)
         final int PERIOD = 500;
         // delay before descending (seconds)
-        final int DELAY = 10;
+        final int DELAY = 20;
         Random random = new Random();
         AtomicInteger target = new AtomicInteger(30 * random.nextInt(0, 12));
 
@@ -129,6 +129,6 @@ public class Simulation1 {
             System.out.printf("Simulation duration: %f s",
                     (float) (endTime - startTime)/1_000_000_000);
         };
-        timer.schedule(changeMode, 60, TimeUnit.SECONDS);
+        timer.schedule(changeMode, DELAY, TimeUnit.SECONDS);
     }
 }
