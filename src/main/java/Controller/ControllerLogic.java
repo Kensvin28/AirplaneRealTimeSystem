@@ -124,22 +124,6 @@ public abstract class ControllerLogic implements FlightMode {
         }
     }
 
-    public void setOxygenMasksDown(boolean down) {
-        oxygenMasksDown = down;
-    }
-
-    public boolean isOxygenMasksDown() {
-        return oxygenMasksDown;
-    }
-
-    public void setLandingGearDown(String message) {
-        landingGearDown = Boolean.parseBoolean(message);
-    }
-
-    public boolean isLandingGearDown() {
-        return landingGearDown;
-    }
-
     void receive() {
         try {
             // receive messages from sensors
@@ -246,5 +230,21 @@ public abstract class ControllerLogic implements FlightMode {
         } catch (IOException | TimeoutException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    public void setOxygenMasksDown(boolean down) {
+        oxygenMasksDown = down;
+    }
+
+    public boolean isOxygenMasksDown() {
+        return oxygenMasksDown;
+    }
+
+    public void setLandingGearDown(String message) {
+        landingGearDown = Boolean.parseBoolean(message);
+    }
+
+    public boolean isLandingGearDown() {
+        return landingGearDown;
     }
 }
